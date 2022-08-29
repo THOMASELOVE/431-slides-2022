@@ -14,7 +14,7 @@ Class | HTML Link to Slides | Date | Quarto file
 03 | to come | 2022-09-06 | to come
 04 | to come | 2022-09-08 | to come 
 
-This README file can also be viewed at https://thomaselove.github.io/431-slides-2022/
+This repository can also be viewed at https://thomaselove.github.io/431-slides-2022/
 
 ![](431-class-foot2.png)
 
