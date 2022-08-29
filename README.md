@@ -5,7 +5,7 @@ This is the repository for Dr. Love's class slides for 431 in Fall 2022.
 The main page for the course is https://thomaselove.github.io/431-2022/
 
 - The **HTML Link to Slides** provides the version of the slides I suggest you focus on during class.
-- The Quarto file links provide the code I used (in Quarto) to build the slides.
+- The Quarto file links provide the code I used (in [Quarto](https://quarto.org/)) to build the slides.
 
 Class | HTML Link to Slides | Date | Quarto file
 :---: | :------------: | :---: | :--------------:
