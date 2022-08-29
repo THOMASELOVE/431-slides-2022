@@ -1,7 +1,6 @@
 # 431-slides-2022
 
 This is the repository for Dr. Love's class slides for 431 in Fall 2022.
-<<<<<<< HEAD
 
 The main page for the course is https://thomaselove.github.io/431-2022/
 
@@ -14,3 +13,6 @@ Class | Date | Link to Slides | Quarto file
 
 The main page for the course is https://thomaselove.github.io/431-2022/
 
+![](431-class-foot2.png)
+
+Last updated: `r Sys.time()`
