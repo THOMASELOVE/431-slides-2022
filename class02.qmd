@@ -1,18 +1,18 @@
 ---
-title: "431 Class 01"
+title: "431 Class 02"
 author: Thomas E. Love, Ph.D.
-date: "2022-08-30"
+date: "2022-09-01"
 format:
   revealjs: 
-    theme: default
+    theme: simple
     self-contained: true
     slide-number: true
     preview-links: auto
     logo: 431-class-foot2.png
-    footer: "431 Class 01 | 2022-08-30 | https://thomaselove.github.io/431-2022/"
+    footer: "431 Class 02 | 2022-09-01 | https://thomaselove.github.io/431-2022/"
 ---
 
 
 ## What's next?
 
-Does this work?
+Blah, blah, blah.
