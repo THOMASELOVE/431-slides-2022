@@ -76,7 +76,7 @@ Our web site: <https://thomaselove.github.io/431-2022/>
 3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
 4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
 5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
-6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
+6.  Sign up for the [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
 
 ## Teaching Assistants (Fall 2022)
 
@@ -375,12 +375,12 @@ ggplot(filter(ageguess, year == 2021), aes(x = age, y = error, fill = sex)) +
 
 - Video playlist from Gapminder: <https://www.gapminder.org/videos/>
 
-## Getting Started (again) {.scrollable}
+## Getting Started (again)
 
 1.  Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
 2.  Skim through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
 3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
 4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
 5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
-6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
+6.  Sign up for the [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
 
