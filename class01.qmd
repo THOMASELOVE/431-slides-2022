@@ -69,15 +69,14 @@ Our web site: <https://thomaselove.github.io/431-2022/>
 - [Software](https://thomaselove.github.io/431-2022/software.html) Details (R and R Studio, installation, data and code downloads)
 - [Assignments](https://thomaselove.github.io/431-2022/assignments.html): Labs, Minute Papers, Quizzes and Projects
 
-## Getting Started (from main web site) {.smaller}
+## Getting Started (from main web site)
 
 1.  Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
 2.  Skim through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
-3.  Obtain a copy of David Spiegelhalter's *The Art of Statistics: How to Learn from Data*, originally published in 2020 and available at all major book retailers for around \$20.
-4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks to those of you who've already done this.
-5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need for the course.
-6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html) for this class.
-
+3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
+4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
+5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
+6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
 
 ## Teaching Assistants (Fall 2022)
 
@@ -366,7 +365,7 @@ ggplot(filter(ageguess, year == 2021), aes(x = age, y = error, fill = sex)) +
 
 ## Hans Rosling "The Joy of Stats"
 
-200 countries over 200 years using 120,000 numbers, in about 4 minutes. View at <http://bit.ly/431-rosling>
+[200 countries over 200 years](https://www.youtube.com/watch?v=jbkSRLYSojo) using 120,000 numbers, in less than 5 minutes.
 
 ### And if you liked that ...
 
@@ -380,8 +379,8 @@ ggplot(filter(ageguess, year == 2021), aes(x = age, y = error, fill = sex)) +
 
 1.  Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
 2.  Skim through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
-3.  Obtain a copy of David Spiegelhalter's *The Art of Statistics: How to Learn from Data*, originally published in 2020 and available at all major book retailers for around \$20.
-4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks to those of you who've already done this.
-5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need for the course.
-6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html) for this class.
+3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
+4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
+5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
+6.  Sign up for the (free) [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
 
