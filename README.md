@@ -11,8 +11,8 @@ Class | HTML Link to Slides | Date | Quarto file
 :---: | :------------: | :---: | :--------------:
 01 | [Slides for Class 01](https://thomaselove.github.io/431-slides-2022/class01.html) | 2022-08-30 | [Quarto for Class 01 slides](class01.qmd)
 02 | [Slides for Class 02](https://thomaselove.github.io/431-slides-2022/class02.html) | 2022-09-01 | [Quarto for Class 02 slides](class02.qmd)
-03 | to come | 2022-09-06 | to come
-04 | to come | 2022-09-08 | to come 
+03 | [Slides for Class 03](https://thomaselove.github.io/431-slides-2022/class03.html) | 2022-09-06 | [Quarto for Class 03 slides](class03.qmd)
+04 | [Slides for Class 04](https://thomaselove.github.io/431-slides-2022/class04.html) | 2022-09-08 | [Quarto for Class 04 slides](class04.qmd)
 
 This repository can also be viewed at https://thomaselove.github.io/431-slides-2022/
 
