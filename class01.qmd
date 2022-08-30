@@ -71,7 +71,7 @@ Our web site: <https://thomaselove.github.io/431-2022/>
 - Course [Calendar](https://thomaselove.github.io/431-2022/calendar.html), which is the final word for all deadlines, and also links to each day's **class page**.
 - Course [Notes](https://thomaselove.github.io/431-notes/) (essentially a textbook)
 - [Software](https://thomaselove.github.io/431-2022/software.html) Details (R and R Studio, installation, data and code downloads)
-- [Assignments](https://thomaselove.github.io/431-2022/assignments.html): Labs, Minute Papers, Quizzes and Projects
+- [Assignments](https://thomaselove.github.io/431-2022/assignments.html): 7 Labs, 9 Minute Papers, 2 Quizzes and 2 Projects
 
 ## Teaching Assistants (Fall 2022)
 
