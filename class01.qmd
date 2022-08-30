@@ -23,6 +23,10 @@ Visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html
   - We'll look at the **HTML slides** during class.
   - We also provide the Quarto code I used to build the slides.
 
+::: aside
+Version `r Sys.time()`
+:::
+
 ## This is PQHS / CRSP / MPHP 431
 
 ![Correlation](https://imgs.xkcd.com/comics/correlation.png)
@@ -68,15 +72,6 @@ Our web site: <https://thomaselove.github.io/431-2022/>
 - Course [Notes](https://thomaselove.github.io/431-notes/) (essentially a textbook)
 - [Software](https://thomaselove.github.io/431-2022/software.html) Details (R and R Studio, installation, data and code downloads)
 - [Assignments](https://thomaselove.github.io/431-2022/assignments.html): Labs, Minute Papers, Quizzes and Projects
-
-## Getting Started (from main web site)
-
-1.  Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
-2.  Skim through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
-3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
-4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
-5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
-6.  Sign up for the [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
 
 ## Teaching Assistants (Fall 2022)
 
@@ -144,6 +139,21 @@ If you will need to miss **more than two** classes in a row, or if you cannot ke
 ![](c01/images/tukey2.jpg) 
 
 John **Tukey** (1915-2000)^[Image Source: <http://www.azquotes.com/author/14847-John_Tukey>]
+
+## Ten Things To Do After Class 01 {.smaller}
+
+1. Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
+2. Read through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
+3. Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
+4. Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey).
+5. [Install the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
+6. Sign up for [Campuswire](https://thomaselove.github.io/431-2022/campuswire.html).
+7. Look at the [Course Notes](https://thomaselove.github.io/431-notes/)
+8. Bookmark two books, plus the RStudio Cheatsheets (see README).
+9. Ask us questions! Campuswire is available now. TA hours start 2022-09-06.
+10. Take a look at Lab 01 due 2022-09-12, our first substantial assignment.
+
+See the [Class 01 README](https://github.com/THOMASELOVE/431-classes-2022/tree/main/class01) for more details.
 
 ## We'll form groups in a moment
 
@@ -375,12 +385,7 @@ ggplot(filter(ageguess, year == 2021), aes(x = age, y = error, fill = sex)) +
 
 - Video playlist from Gapminder: <https://www.gapminder.org/videos/>
 
-## Getting Started (again)
+## Thanks for coming!
 
-1.  Review the [main course website](https://thomaselove.github.io/431-2022/), being sure to visit the [Course Calendar](https://thomaselove.github.io/431-2022/calendar.html).
-2.  Skim through the [Course Syllabus](https://thomaselove.github.io/431-syllabus-2022/).
-3.  Obtain David Spiegelhalter's *The Art of Statistics: How to Learn from Data* (~$20).
-4.  Complete the [Welcome to 431 survey](https://bit.ly/431-2022-welcome-survey). Thanks if you've already done this.
-5.  Get started [installing the software](https://thomaselove.github.io/431-2022/software.html) you'll need.
-6.  Sign up for the [Campuswire discussion forum](https://thomaselove.github.io/431-2022/campuswire.html).
+See you Thursday at 1 PM right here.
 
