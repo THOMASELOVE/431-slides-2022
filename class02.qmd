@@ -4,7 +4,7 @@ author: Thomas E. Love, Ph.D.
 date: "2022-09-01"
 format:
   revealjs: 
-    theme: simple
+    theme: default
     self-contained: true
     slide-number: true
     preview-links: auto
@@ -12,11 +12,230 @@ format:
     footer: "431 Class 02 | 2022-09-01 | https://thomaselove.github.io/431-2022/"
 ---
 
+## Instructions for the Quick Survey
 
-## Coming soon.
+Please read these instructions **before** writing.
 
-Slides for Class 02 will appear soon.
+1. Introduce yourself to someone that you don't know.
+2. Record the survey answers **for that other person**, while they record your responses.
+3. Be sure to complete all 15 questions (both sides.)
+4. When you are finished, thank your partner and raise your hand. Someone will come to collect your survey.
+
+Regarding Question 4, Professor Love is the large fellow standing in the front of the room.
+
+## Today's Agenda
+
+- Data Structures and Variables
+- Evaluating some of the Survey variables
+- Using R to look at a little data
+- Guessing Dr. Love's Age
 
 ::: aside
 Version `r Sys.time()`
 :::
+
+
+## Chatfield's Six Rules for Data Analysis
+
+1. Do not attempt to analyze the data until you understand what is being measured and why.
+2. Find out how the data were collected.
+3. Look at the structure of the data.
+4. Carefully examine the data in an exploratory way, before attempting a more sophisticated analysis.
+5. Use your common sense at all times.
+6. Report the results in a clear, self-explanatory way.
+
+::: aside
+Chatfield, Chris (1996) *Problem Solving: A Statistician's Guide*, 2nd ed.
+:::
+
+## Our Quick Survey
+
+![](c02/images/survey_form.png)
+
+## Types of Data
+
+The key distinction we'll make is between
+
+- **quantitative** (numerical) and
+- **categorical** (qualitative) information.
+
+Information that is quantitative describes a **quantity**. 
+
+- All quantitative variables have units of measurement.
+- Quantitative variables are recorded in numbers, and we use them as numbers (for instance, taking a mean of the variable makes some sense.)
+
+## Continuous vs. Discrete Quantities
+
+**Continuous** variables (can take any value in a range) vs. **Discrete** variables (limited set of potential values)
+
+- Is Height a continuous or a discrete variable?
+
+:::{.incremental}
+  - Height is certainly continuous as a concept, but how precise is our ruler?
+  - Piano vs. Violin
+:::
+
+## Quantitative Variable Subtypes
+
+We can also distinguish **interval** (equal distance between values, but zero point is arbitrary) from **ratio** variables (meaningful zero point.)
+
+:::{.incremental}
+  - Is Weight an interval or ratio variable? 
+  - How about IQ?
+:::
+
+## Qualitative (Categorical) Data
+
+Qualitative variables consist of names of categories.
+
+- Each possible value is a code for a category (could use numerical or non-numerical codes.)
+  - **Binary** categorical variables (two categories, often labeled 1 or 0)
+  - **Multi-categorical** variables (three or more categories)
+- Can distinguish *nominal* (no underlying order) vs. *ordinal* (categories are ordered.)
+
+## Some Categorical Variables
+
+- How is your overall health? <br /> (Excellent, Very Good, Good, Fair, Poor)
+- Which candidate would you vote for if the election were held today?
+- Did this patient receive this procedure?
+- If you needed to analyze a small data set right away, which of the following software tools would you be comfortable using to accomplish that task?
+
+## Are these quantitative or categorical?
+
+1. Do you **smoke**? (1 = Non-, 2 = Former, 3 = Smoker)
+2. How much did you pay for your most recent **haircut**? (in $)
+3. What is your favorite **color**?
+4. How many hours did you **sleep** last night?
+5. Statistical thinking in your future **career**? (1 = Not at all important to 7 = Extremely important)
+
+- If quantitative, are they *discrete* or *continuous*? Do they have a meaningful *zero point*?
+- If categorical, how many categories? *Nominal* or *ordinal*?
+
+## Importing and Tidying Data
+
+![](c02/images/data-science-emphasize-import-and-tidy.PNG)
+
+## Ingesting the Quick Surveys
+
+![](c02/images/2019_setup.png)
+
+## The Quick Survey
+
+315 people took (essentially) the same survey in the same way.
+
+Fall | 2019 | 2018 | 2017 | 2016 | 2015 | 2014 | Total
+----: | ----: |----: | ----: | ----: | ----: | -----: | -----:
+*n* | 61 | 51 | 48 | 64 | 49 | 42 | **315**
+
+### Question
+
+About how many of those 315 surveys caused *no problems* in recording responses?
+
+## The 15 Survey Items
+
+\#  | Topic         | \#  | Topic
+--: | -----------   | --: | -----------
+Q1 | `glasses`      | Q9  | `lectures_vs_activities`
+Q2 | `english`      | Q10 | `projects_alone`
+Q3 | `stats_so_far` | Q11 | `height`
+Q4 | `guess_TL_ht`  | Q12 | `hand_span`
+Q5 | `smoke`        | Q13 | `color`
+Q6 | `handedness`   | Q14 | `sleep`
+Q7 | `stats_future` | Q15 | `pulse_rate`
+Q8 | `haircut`      | -   | -
+
+
+- At one time, I asked about `sex` rather than `glasses`.
+- In prior years, people guessed my age, rather than height here.
+- Sometimes, I've asked for a 30-second pulse check, then doubled.
+
+## Response to the Question I asked
+
+About how many of those 315 surveys caused *no problems* in recording responses?
+
+> - Guesses?
+
+> - 110/315 (35%) caused no problems.
+
+## Guess My Age
+
+![](c02/images/q04a.png) 
+
+![](c02/images/q04b.png)
+
+![](c02/images/q04c.png)
+
+What should we do in these cases?
+
+## English best language?
+
+![](c02/images/q02a.png) 
+
+![](c02/images/q02b.png)
+
+![](c02/images/q02c.png)
+
+## Height
+
+![](c02/images/q11-issues.png)
+
+## Handedness Scale (2016-21 version)
+
+![](c02/images/q06b.png)
+
+## Favorite color
+
+![](c02/images/q13a.png)
+
+![](c02/images/q13b.png)
+
+![](c02/images/q13c.png)
+
+## Following the Rules?
+
+![](c02/images/q15a.png)
+
+### 2019 `pulse` responses, sorted (*n* = 61, 1 NA)
+
+```
+ 33 46 48  56  60  60    3 | 3
+ 62 63 65  65  66  66    4 | 68
+ 68 68 68  69  70  70    5 | 6
+ 70 70 70  70  70  70    6 | 002355668889        
+ 71 72 72  74  74  74    7 | 00000000122444445666888
+ 74 74 75  76  76  76    8 | 000012445668
+ 78 78 78  80  80  80    9 | 000046
+ 80 81 82  84  84  85   10 | 44
+ 86 86 88  90  90  90   11 | 0
+ 90 94 96 104 104 110 
+```
+
+## Stem and Leaf: Pulse Rates 2014-2019 
+
+![](c02/images/2014-2019_q08_pulse_stem.png)
+
+(Thanks, John \color{red} **Tukey** \color{black})
+
+## Garbage in, garbage out ...
+
+![](c02/images/lastlineofdefense.png)
+
+# What Happens Next?
+
+## The R Packages I'll Load Today
+
+```{r}
+#| echo: true
+#| message: false
+
+library(janitor)
+library(googlesheets4)
+library(patchwork)
+library(tidyverse)
+```
+
+- If you actually run this in R, you will get some messages which we will suppress and ignore today.
+
+## More to come.
+
+Soon.
