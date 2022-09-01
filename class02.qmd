@@ -220,7 +220,7 @@ What should we do in these cases?
 
 ![](c02/images/lastlineofdefense.png)
 
-# What Happens Next?
+# Guessing My Age <br /> from Class 01
 
 ## The R Packages I'll Load Today
 
@@ -229,6 +229,7 @@ What should we do in these cases?
 #| message: false
 
 library(janitor)
+library(kableExtra)
 library(googlesheets4)
 library(patchwork)
 library(tidyverse)
@@ -236,6 +237,350 @@ library(tidyverse)
 
 - If you actually run this in R, you will get some messages which we will suppress and ignore today.
 
-## More to come.
+## From our Shared Google Drive
 
-Soon.
+I've placed `class01_age_guesses_2022-08-30` on our Shared Google Drive.
+
+![](c02/images/age_guess_sheet.png)
+
+- Remember that you must log into Google via CWRU to see the Drive I've shared with you.
+ 
+## Reading from Google Drive
+
+We'll use the `read_sheet` function from the `googlesheets4` package to read in data from a Google Sheet. 
+
+To do this, we copy the URL from the Google Sheet into a temporary object I'll call `temp_url`.
+
+```{r}
+#| echo: true
+#| message: false
+gs4_deauth() # lets us work with the file without extra authorization
+
+temp_url <- 
+  "https://docs.google.com/spreadsheets/d/1UMwBxg6CJfReYHNEauJSWmZSKma-DQlPYWNiN9-HcNM/edit#gid=0"
+```
+
+- For more on `gs4_deauth()`, visit [this link](https://googlesheets4.tidyverse.org/reference/gs4_deauth.html)
+
+## Creating the `age_guess` Tibble
+
+Then I'll read in the sheet's data to a new tibble called `age_guess` using `read_sheet()`. What do we get?
+
+```{r}
+#| echo: true
+#| message: false
+age_guess <- read_sheet(temp_url)
+age_guess
+```
+
+## What do the `guess1` values look like?
+
+```{r}
+#| echo: true
+age_guess |> 
+  select(guess1) |> 
+  arrange(guess1) 
+```
+
+## Plot the `guess1` values?
+
+```{r}
+#| echo: true
+#| output-location: column
+ggplot(data = age_guess, 
+       aes(x = guess1)) +
+  geom_dotplot(binwidth = 1)
+```
+
+## Can we make a histogram?
+
+```{r}
+#| echo: true
+#| output-location: column
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram()
+```
+
+## Improving the Histogram, 1
+
+```{r}
+#| echo: true
+#| output-location: column
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(bins = 10) 
+```
+
+## Improving the Histogram, 2
+
+```{r}
+#| echo: true
+#| output-location: column
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(bins = 10, 
+        col = "yellow")
+```
+
+## Improving the Histogram, 3
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(bins = 10, 
+       col = "white", 
+       fill = "blue")
+```
+
+## Improving the Histogram, 4
+
+Change theme, specify bin width rather than number of bins
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(binwidth = 2, 
+       col = "white", fill = "blue") +
+  theme_bw()
+```
+
+## Improving the Histogram, 5
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(binwidth = 2, 
+       col = "white", fill = "blue") +
+  theme_bw() +
+  labs(
+    x = "First Guess of Dr. Love's Age",
+    y = "Fall 2022 431 students")
+```
+
+## Add title and subtitle (ver. 6)
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(binwidth = 2, 
+       col = "white", fill = "blue") +
+  theme_bw() +
+  labs(
+    x = "First Guess of Dr. Love's Age",
+    y = "Fall 2022 431 students",
+    title = "Pretty wide range of guesses",
+    subtitle = "Dr. Love's Actual Age = 55.5")
+```
+
+## Improving the Histogram, 7
+
+Add a vertical line at 55.5 years to show my actual age.
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(age_guess, 
+       aes(x = guess1)) +
+  geom_histogram(binwidth = 2, 
+       col = "white", fill = "blue") +
+  geom_vline(aes(xintercept = 55.5), col = "red") +
+  theme_bw() +
+  labs(
+    x = "First Guess of Dr. Love's Age",
+    y = "Fall 2022 431 students",
+    title = "Pretty wide range of guesses",
+    subtitle = "Dr. Love's Actual Age = 55.5")
+```
+
+## Numerical Summary (I was 55.5)
+
+```{r}
+#| echo: true
+summary(age_guess)
+```
+
+>- Was the average guess closer on guess 1 or 2?
+>- What was the range of first guesses? Second guesses?
+>- What does the `NA's : 3` mean in `guess2`?
+>- Why is `student` not summarized any further?
+
+## More Numerical Summaries
+
+- Using the `favstats` function from the `mosaic` package
+
+```{r}
+#| echo: true
+#| message: false
+mosaic::favstats(~ guess1, data = age_guess)
+mosaic::favstats(~ guess2, data = age_guess)
+```
+
+- Using the `describe` function from the `psych` package
+
+```{r}
+#| echo: true
+#| message: false
+
+age_guess |>
+  select(guess1, guess2) |>
+  psych::describe()
+```
+
+## Guesses between 50 and 60?
+
+- Counting is an under-appreciated activity.
+
+```{r}
+#| echo: true
+age_guess |> count(guess1 >= 50 & guess1 <= 60)
+age_guess |> count(guess2 >= 50 & guess1 <= 60)
+```
+
+## Guess 1 - Guess 2 Scatterplot
+
+```{r}
+#| echo: true
+ggplot(data = age_guess, aes(x = guess1, y = guess2)) +
+  geom_point() 
+```
+
+## Filter to complete cases, and add regression line
+
+```{r}
+#| echo: true
+#| output-location: slide
+temp <- age_guess |>
+  filter(complete.cases(guess1, guess2))
+
+ggplot(data = temp, aes(x = guess1, y = guess2)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, col = "purple")
+```
+
+## What is that regression line?
+
+```{r}
+lm(guess2 ~ guess1, data = age_guess)
+```
+
+- Note that `lm` filters to complete cases by default.
+
+## How about a loess smooth curve?
+
+```{r}
+#| echo: true
+#| output-location: slide
+temp <- age_guess |>
+  filter(complete.cases(guess1, guess2))
+
+ggplot(data = temp, aes(x = guess1, y = guess2)) +
+  geom_point() +
+  geom_smooth(method = "loess", formula = y ~ x, col = "blue") +
+  theme_bw()
+```
+
+## Add y = x line (no change in guess)?
+
+```{r}
+#| echo: true
+#| output-location: slide
+temp <- age_guess |>
+  filter(complete.cases(guess1, guess2))
+
+ggplot(data = temp, aes(x = guess1, y = guess2)) +
+  geom_point() +
+  geom_smooth(method = "loess", formula = y ~ x, col = "blue") +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  theme_bw()
+```
+
+## With Better Labels
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = temp, aes(x = guess1, y = guess2)) +
+  geom_point() +
+  geom_smooth(method = "loess", formula = y ~ x, col = "blue") +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  geom_text(x = 40, y = 38, label = "y = x", col = "red") +
+  labs(x = "First Guess of Love's Age",
+       y = "Second Guess of Love's Age",
+       title = "Comparing 2022 Age Guesses",
+       subtitle = "Love's actual age = 55.5") +
+  theme_bw()
+```
+
+## How did guesses change?
+
+- Did your guesses decrease / stay the same / increase?
+- Calculate guess2 - guess1 and examine its sign.
+
+```{r}
+#| echo: true
+age_guess |> 
+  count(sign(guess2 - guess1))
+```
+
+## How much did guesses change?
+
+Create new variable (change = guess2 - guess1)
+
+```{r}
+#| echo: true
+age_guess <- age_guess |>
+  mutate(change = guess2 - guess1)
+
+age_guess |> select(change) |> summary()
+```
+
+## Table (via `tabyl`) of guess changes
+
+```{r}
+#| echo: true
+age_guess |>
+  tabyl(change) |> 
+  adorn_pct_formatting()
+```
+
+## Dotplot of guess changes
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+ggplot(data = age_guess, aes(x = change)) +
+  geom_dotplot(binwidth = 1, dotsize = 0.5) +
+  theme_bw()
+```
+
+## Histogram of Guess Changes
+
+What will this look like?
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+#| output-location: slide
+ggplot(data = age_guess, aes(x = change)) +
+  geom_histogram(binwidth = 2, fill = "royalblue", col = "yellow") + 
+  theme_bw() +
+  labs(x = "Change from first to second guess",
+       y = "Number of students (431 in Fall 2021)",
+       title = "Most stayed close to their first guess.")
+```
+
+## What Happens Next Time?
+
+To be announced.
