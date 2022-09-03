@@ -12,7 +12,7 @@ format:
     footer: "431 Class 03 | 2022-09-06 | https://thomaselove.github.io/431-2022/"
 ---
 
-## Today's Agenda
+## Today's Agenda {.smaller}
 
 - Work in R with a familiar data set (the 15 question survey from Class 02)
 - Open RStudio, load in some data and a template to write R Markdown code
@@ -21,6 +21,10 @@ format:
     - We'll also inspect and knit the R Markdown file after all of the code is included.
   - Then we'll start over again with the slides.
 - These slides walk through everything in that R Markdown document
+
+::: aside
+Version `r Sys.time()`
+:::
 
 ## Today's Files
 
@@ -45,9 +49,6 @@ We're using R Markdown to gather together into a single document:
 
 Everything in these slides is also going into our R Markdown file.
 
-::: aside
-Version `r Sys.time()`
-:::
 
 ## Load packages and set theme
 
