@@ -23,6 +23,10 @@ Version `r Sys.time()`
 
 ## From Class 03
 
+## R Markdown!
+
+![](c04/images/rmarkdown_wizards.png)
+
 ### Load packages and set theme
 
 ```{r}
