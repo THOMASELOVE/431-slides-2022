@@ -722,6 +722,11 @@ dat8 |>
 
 - Now, what is your conclusion?
 
+## Next Time
+
+Analyzing a (small) health dataset
+
+
 ## Cleaning up the temporary objects
 
 ```{r}
@@ -735,7 +740,6 @@ rm(mod1,
 ## qsdat and quicksur_raw in my Global Environment
 ```
 
-
 ## Session Information
 
 Don't forget to close your file with the session information.
@@ -745,11 +749,3 @@ Don't forget to close your file with the session information.
 sessionInfo()
 ```
 
-## Session Information
-
-Don't forget to close your file with the session information.
-
-```{r}
-#| echo: true
-sessionInfo()
-```

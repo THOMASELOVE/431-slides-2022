@@ -1,0 +1,28 @@
+---
+title: "431 Class 06"
+author: "Thomas E. Love, Ph.D."
+date: "2022-09-15"
+format:
+  revealjs: 
+    theme: simple
+    self-contained: true
+    slide-number: true
+    preview-links: auto
+    logo: 431-class-foot2.png
+    footer: "431 Class 06 | 2022-09-15 | https://thomaselove.github.io/431-2022/"
+---
+
+## Today's Agenda
+
+Details coming soon.
+
+::: aside
+Version `r Sys.time()`
+:::
+
+## Session Information
+
+```{r}
+#| echo: true
+sessionInfo()
+```
