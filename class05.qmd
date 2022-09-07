@@ -14,20 +14,22 @@ format:
 
 ## Today's Agenda
 
-- A close look at the `dm431` data.
+- Setting up the `dm431` data
+  - Looking closely at `age` and at systolic blood pressure
+
+> Systolic blood pressure, the top number, measures the force the heart exerts on the walls of the arteries each time it beats. Diastolic blood pressure, the bottom number, measures the force the heart exerts on the walls of the arteries in between beats. (Mayo Clinic)
 
 ::: aside
 Version `r Sys.time()`
 :::
 
-### Today's R Packages {.smaller}
+## Today's R Packages
 
 ```{r}
 #| message: false
 #| echo: true
 
 library(janitor)
-library(kableExtra) # for the kbl() function to neaten table output
 library(naniar) # although today's data are complete
 library(patchwork)
 library(tidyverse) # always load tidyverse last
@@ -35,7 +37,7 @@ library(tidyverse) # always load tidyverse last
 theme_set(theme_light()) # other TEL option: theme_bw()
 ```
 
-- Use `{r, message = FALSE}` in the code chunk header to suppress messages about conflicts between R packages. 
+- Use `{r, message = FALSE}` in the code chunk header to silence messages about conflicts between R packages. 
 
 ## Code Chunk Header?
 
@@ -70,10 +72,10 @@ Registered S3 methods overwritten by 'dbplyr':
 dm431 <- read_csv("c05/data/dm_431.csv", show_col_types = FALSE)
 ```
 
-- This is a sample of 431 people from a larger pool of people with diabetes which we'll study later this term.
+- This is a (simulated) sample of 431 women with diabetes.
 - Note the use of `read_csv` instead of `read.csv` here.
     - Can also run this without `show_col_types = FALSE` and you'll get a message (see next slide.)
-    - Can also supress message with `{r, message = FALSE}` in the code chunk header.
+    - Could instead silence message with <br /> `{r, message = FALSE}` in the code chunk header.
 
 ## Without `show_col_types = FALSE`
 
@@ -93,13 +95,31 @@ dbl (10): AGE, N_INCOME, HT, WT, SBP, DBP, A1C, LDL, STATIN, EYE_EXAM
 
 ```
 
-## A First Look
+## A First Look at the tibble
 
 ```{r}
 #| echo: true
 
 dm431
 ```
+
+## `dm431` variable names
+
+```{r}
+#| echo: true
+
+names(dm431)
+```
+
+## First and last few subjects
+
+```{r}
+#| echo: true
+
+head(dm431, 3)
+tail(dm431, 2)  
+```
+
 
 ## `dm431` glimpse (first few values)
 
@@ -109,22 +129,6 @@ dm431
 glimpse(dm431)
 ```
 
-## `dm431` variable structure
-
-```{r}
-#| echo: true
-
-str(dm431)
-```
-
-## `dm431` variable names and specifications
-
-```{r}
-#| echo: true
-
-names(dm431)
-spec(dm431)
-```
 
 
 ## What would improve our data ingest?
@@ -195,6 +199,14 @@ Variable | Description
 
 - Again, these are 431 female adults living with diabetes in Cuyahoga County within a certain age range, with complete data on all variables in this codebook.
 
+## New `dm431` variable structure
+
+```{r}
+#| echo: true
+
+str(dm431)
+```
+
 
 ## Checking for missingness
 
@@ -207,7 +219,8 @@ miss_case_table(dm431)
 Can also use other functions from the `naniar` package to understand and cope with missing values:
 
 - `miss_var_summary()` and `miss_var_table()`
-- `gg_miss_var()` as shown on next screen, although that will throw a warning you can suppress by using `{r, warning = FALSE}` in the chunk header.
+- Next slide shows `gg_miss_var()` result
+  - Note: warning silenced by `{r, warning = FALSE}` in chunk header.
 
 ## Plot of missingness in `dm431` tibble
 
@@ -220,20 +233,66 @@ gg_miss_var(dm431)
 
 ## How old are these women?
 
-- We want to describe the **center**, **spread** (dispersion) and **shape** (symmetry, outliers) of these 431 ages. How do these summaries help?
+- We want to describe the **center**, **spread** (dispersion) and **shape** (symmetry, outliers) of these 431 ages. 
+- How might these summaries help?
 
 ```{r}
 #| echo: true
 #| message: false
 
 dm431 |> select(age) |> summary()
-
-mosaic::favstats(~ age, data = dm431)
-
-mosaic::favstats(~ age, data = dm431) |> kbl(digits = 2)
 ```
 
-## Summarizing Age with `Hmisc::describe` (1/2)
+- What is the age range of these women?
+
+## More numerical summaries?
+
+```{r}
+#| echo: true
+
+mosaic::favstats(~ age, data = dm431)
+```
+
+- Five-number summary of quantiles: <br /> `min`, `Q1`, `median`, `Q3` and `max`
+- Mean and standard deviation (`sd`) of the ages
+- Sample size (non-missing) and # of missing values
+
+Can you envision the distribution of these ages?
+
+## Raw Dot Plot of `dm431` Ages
+
+```{r}
+#| echo: true
+ggplot(data = dm431, aes(x = age)) + 
+  geom_dotplot(binwidth = 1) 
+```
+
+## Improved Dot Plot of `dm431` Ages
+
+```{r}
+#| echo: true
+#| code-line-numbers: "2|3|"
+ggplot(data = dm431, aes(x = age)) + 
+  geom_dotplot(binwidth = 1, dotsize = 0.5, col = "royalblue") +
+  scale_y_continuous(NULL, breaks = NULL)
+```
+
+## Using `psych::describe()`
+
+
+```{r}
+#| echo: true
+
+psych::describe(dm431$age)
+```
+
+- What's new here?
+  - `trimmed` = mean of middle 80% of data
+  - `mad` = median absolute deviation (measures spread)
+  - `se` = standard error of the mean $= {sd} / {\sqrt{n}}$
+  - `skew` and `kurtosis` not so important today
+
+## Using `Hmisc::describe()`
 
 ```{r}
 #| echo: true
@@ -241,22 +300,18 @@ mosaic::favstats(~ age, data = dm431) |> kbl(digits = 2)
 dm431 |> select(age) |> Hmisc::describe()
 ```
 
-- `Info` is related to how "continuous" the variable is - it's a relative measure of the available information that is reduced below 1 by having lots of ties or non-distinct values
+- What's new here?
+  - `distinct`, `Info`, `Gmd`
+
+## New `Hmisc::describe` elements
+
 - `Hmisc::describe` treats a numeric variable as discrete if it has 10 or fewer distinct values
+- `Info` is related to how "continuous" the variable is - it's a relative measure of the available information that is reduced below 1 by ties or non-distinct values
+- `Gmd` = Gini's mean difference measures dispersion (spread). It is the mean absolute difference between any pairs of the 431 observations. Rhymes with "Mini."
 
 ---
 
 ![](c05/images/continuous_discrete.png)
-
-## Frank Harrell's `Hmisc::describe` (2/2)
-
-```{r}
-#| echo: true
-
-dm431 |> select(age) |> Hmisc::describe()
-```
-
-- `Gmd` = Gini's mean difference is a measure of dispersion (spread) that some people like to use rather than a standard deviation in specific settings. It is the mean absolute difference between any pairs of the 431 observations.
 
 # Plotting the `sbp` data to learn about center, spread, outliers and shape
 
@@ -270,14 +325,13 @@ ggplot(data = dm431, aes(x = sbp)) +
   labs(title = "431 SBP values for women with diabetes")
 ```
 
-## Systolic BP values from `dm431` (histogram)
+## Histogram of `dm431` Systolic BP
 
 ```{r}
 #| echo: true
 
 ggplot(data = dm431, aes(x = sbp)) +
-  geom_histogram(binwidth = 5, fill = "royalblue",
-                 col = "gold") +
+  geom_histogram(binwidth = 5, fill = "royalblue", col = "gold") +
   labs(title = "431 SBP values for women with diabetes")
 ```
 
@@ -308,9 +362,10 @@ p4 <- ggplot(data = dm431, aes(x = sbp)) +
   plot_annotation(title = "431 SBP values for women with diabetes")
 ```
 
-## Code for previous slide
+## "Pseudo-Code" for previous slide
 
 ```{r}
+#| echo: true
 #| eval: false
 
 p1 <- ggplot(data = dm431, aes(x = sbp)) +
@@ -327,7 +382,7 @@ p1 <- ggplot(data = dm431, aes(x = sbp)) +
     title = "431 SBP values for women with diabetes")
 ```
 
-- Remember that you have the R Markdown file for every set of slides.
+- You have the Quarto file for every set of slides in the README.
 
 # Can we describe these data as being well-approximated by a Normal model?
 
@@ -337,95 +392,118 @@ By a Normal model, we mean that the data are assumed to be the result of selecti
 
 - The Normal model is defined by establishing the values of two parameters: the mean and the standard deviation.
 
-### When is it helpful to assume our data follow a Normal model?
+## When is it helpful to assume our data follow a Normal model?
 
 - When summarizing the data (especially if we want to interpret the mean and standard deviation)
 - When creating inferences about populations from samples (as in a t test, or ANOVA)
 - When creating regression models, it will often be important to make distributional assumptions about errors, for instance, that they follow a Normal model.
 
-## Does a Normal model fit our data "well enough"?
+## Are our data "Normal enough"?
 
 We evaluate whether a Normal model fits sufficiently well to our data on the basis of (in order of importance):
 
 1. Graphs (**DTDP**) are the most important tool we have
-  - There are several types of graphs available that are designed to (among other things) help us identify clearly several of the potential problems with assuming Normality.
+    - There are several types of graphs designed to help us clearly identify potential problems with assuming Normality.
+
+## Are our data "Normal enough"?
+
+We evaluate whether a Normal model fits sufficiently well to our data on the basis of (in order of importance):
+
+1. Graphs
 2. Planned analyses after a Normal model decision is made
-  - How serious the problems we see in graphs need to be before we worry about them changes substantially depending on how closely the later analyses we plan to do rely on the assumption of Normality.
-3. Numerical Summaries are by far the least important even though they seem "easy-to-use" and "objective".
+    - How serious the problems we see in graphs need to be before we worry about them changes substantially depending on how closely the later analyses we plan to do rely on the assumption of Normality.
 
 
-## Simulating Normal data with same Mean and SD
+## Are our data "Normal enough"?
+
+We evaluate whether a Normal model fits sufficiently well to our data on the basis of (in order of importance):
+
+1. Graphs
+2. Planned analyses after decision is made
+3. Numerical Summaries of the data
+    - Definitely the least important even though they seem "easy-to-use" and "objective".
+
+## Simulating Data from a Normal
 
 Simulate a sample of 431 observations from a Normal model with mean and standard deviation equal to the mean and standard deviation of our `dm431` systolic BPs.
 
 ```{r}
 #| echo: true
 
-set.seed(20210907)
+set.seed(2022)
 sim_data <- tibble(
-  sbp = rnorm(n = 431, 
-              mean = mean(dm431$sbp),
-              sd = sd(dm431$sbp)))
+  sbp = rnorm(n = 431, mean = mean(dm431$sbp), sd = sd(dm431$sbp)))
 ```
 
-## Comparing Summary Statistics
+## Simulated Sample vs. 431 Data
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
-mosaic::favstats(~ sbp, data = dm431) |> kable(dig = 1)
+p1 <- ggplot(data = dm431, aes(x = sbp)) +
+  geom_dotplot(binwidth = 1, col = "navy") +
+  labs(title = "431 SBP values for women with diabetes")
 
-mosaic::favstats(~ sbp, data = sim_data) |> kable(dig = 1)
-```
-
-What can we learn from this comparison?
-
-- about the center of the data?
-- about the spread of the data?
-- about the shape of the data?
-
-## Comparing histograms of `dm431` and simulated SBP
-
-```{r}
-#| echo: false
-#| warning: false
-
-p1 <- ggplot(data = dm431, aes(x = sbp)) + 
-  geom_histogram(binwidth = 5, fill = "royalblue", col = "gold") +
-  scale_x_continuous(limits = c(70, 200), breaks = c(80, 100, 120, 140, 160, 180)) +
-  labs(title = "431 Observed SBP values from dm431 (sample mean = 128.8, sd = 16.3)")
-
-p2 <- ggplot(sim_data, aes(x = sbp)) +
-  geom_histogram(binwidth = 5, fill = "turquoise", col = "black") +
-  scale_x_continuous(limits = c(70, 200), breaks = c(80, 100, 120, 140, 160, 180)) +
-  labs(title = "431 Simulated Values from Normal model with mean = 128.8, sd = 16.3")
+p2 <- ggplot(data = sim_data, aes(x = sbp)) +
+  geom_dotplot(binwidth = 1, col = "deeppink") +
+  labs(title = "431 Simulated SBP values")
 
 p1 / p2
 ```
 
-- Does a Normal model look appropriate for describing the SBP in `dm431`?
+## Putting the plots together...
+
+![](c05/images/patchwork_1.jpg)
+
+## Comparing Histograms
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(data = dm431, aes(x = sbp)) + 
+  geom_histogram(binwidth = 5, fill = "navy", col = "gold") +
+  scale_x_continuous(limits = c(70, 200), 
+                     breaks = c(80, 100, 120, 140, 160, 180)) +
+  labs(title = "431 Observed SBP values from dm431 (mean = 128.8, sd = 16.3)")
+
+p2 <- ggplot(sim_data, aes(x = sbp)) +
+  geom_histogram(binwidth = 5, fill = "deeppink", col = "black") +
+  scale_x_continuous(limits = c(70, 200), 
+                     breaks = c(80, 100, 120, 140, 160, 180)) +
+  labs(title = "431 Simulated Values from Normal model with same mean and SD")
+
+p1 / p2
+```
 
 ## Graphs are our most important tool!
 
 ![](c05/images/not_normal.png)
 
-## Rescale `nh3` SBP histogram as density
+## Rescale `dm431` SBP histogram as density
 
-Suppose we want to rescale the histogram counts so that the bar areas integrate to 1. This will let us overlay a Normal density onto the results.
+Suppose we want to rescale the histogram counts so that the bar areas integrate to 1. 
+
+- This will let us overlay a Normal density onto the results.
 
 ```{r}
 #| echo: true
+#| output-location: slide
+
 ggplot(dm431, aes(x = sbp)) +
   geom_histogram(aes(y = stat(density)), bins = 20, 
                  fill = "royalblue", col = "white")
 ```
 
-## Density Function, with Normal superimposed
+## Density, with superimposed Normal
 
 Now we can draw a Normal density curve on top of the rescaled histogram.
 
 ```{r}
 #| echo: true
+#| output-location: slide
+
 ggplot(dm431, aes(x = sbp)) +
   geom_histogram(aes(y = stat(density)), bins = 20, 
                  fill = "royalblue", col = "white") +
@@ -436,26 +514,12 @@ ggplot(dm431, aes(x = sbp)) +
   labs(title = "SBP density, with Normal model superimposed")
 ```
 
-## Code for plotting Histogram as Density function
-
-Including the superimposition of a Normal density on top of the histogram.
+## Violin and Boxplot for `dm431` SBP
 
 ```{r}
 #| echo: true
-ggplot(dm431, aes(x = sbp)) +
-  geom_histogram(aes(y = stat(density)), bins = 20, 
-                 fill = "royalblue", col = "white") +
-  stat_function(fun = dnorm, 
-                args = list(mean = mean(dm431$sbp), 
-                            sd = sd(dm431$sbp)),
-                col = "red", lwd = 1.5) +
-  labs(title = "SBP density, with Normal model superimposed")
-```
+#| output-location: slide
 
-## Violin and Boxplot for `dm431` Systolic BP values
-
-```{r}
-#| echo: true
 ggplot(dm431, aes(x = "", y = sbp)) + 
   geom_violin(fill = "lemonchiffon") + 
   geom_boxplot(width = 0.3, fill = "royalblue", 
@@ -463,15 +527,14 @@ ggplot(dm431, aes(x = "", y = sbp)) +
                outlier.color = "royalblue") + 
   coord_flip() + 
   labs(x = "dm431 sample")
-
-mosaic::favstats(~ sbp, data = dm431) |> 
-  kable(digits = 1)
 ```
 
 ## Observed vs. Simulated Systolic BPs
 
 ```{r}
 #| echo: true
+#| output-location: slide
+
 p1 <- ggplot(dm431, aes(x = "", y = sbp)) + 
   geom_violin(fill = "lemonchiffon") + 
   geom_boxplot(width = 0.3, fill = "royalblue", 
@@ -483,10 +546,10 @@ p1 <- ggplot(dm431, aes(x = "", y = sbp)) +
        title = "Observed SBP values")
 
 p2 <- ggplot(sim_data, aes(x = "", y = sbp)) + 
-  geom_violin(fill = "green") + 
-  geom_boxplot(width = 0.3, fill = "firebrick", 
+  geom_violin(fill = "cornsilk") + 
+  geom_boxplot(width = 0.3, fill = "deeppink", 
                outlier.size = 3, 
-               outlier.color = "firebrick") + 
+               outlier.color = "deeppink") + 
   lims(y = c(70, 200)) +
   coord_flip() + 
   labs(x = "Simulated data",
@@ -495,13 +558,22 @@ p2 <- ggplot(sim_data, aes(x = "", y = sbp)) +
 p1 / p2
 ```
 
-- Does a Normal model look appropriate for describing the SBP in `dm431`?
-
-## Putting the plots together...
-
-![](c05/images/patchwork_1.jpg)
-
 # Using Numerical Summaries to Assess Normality: A Good Idea?
+
+## Comparing Numerical Summaries
+
+```{r}
+#| echo: true
+
+mosaic::favstats(~ sbp, data = dm431) 
+mosaic::favstats(~ sbp, data = sim_data)
+```
+
+What can we learn from these comparisons...
+
+- about the center of the data?
+- about the spread of the data?
+- about the shape of the data?
 
 ## Does a Normal model fit well for my data?
 
@@ -525,7 +597,7 @@ $$
 - $skew_1 < -0.2$ indicates fairly substantial left skew
 
 
-## Measuring skewness in the SBP values: `dm431`?
+## Measuring skew in `dm431` SBP?
 
 ```{r}
 #| echo: true
@@ -540,6 +612,13 @@ dm431 |>
 
 What does this suggest?
 
+## For any data set...
+
+Remember that, regardless of the distribution of the data:
+
+- Half of the data will fall below the median, and half above it.
+- Half of the data will fall in the Interquartile Range (IQR).
+
 ## Empirical Rule for a Normal Model
 
 If the data followed a Normal distribution, perfectly, then about:
@@ -548,34 +627,25 @@ If the data followed a Normal distribution, perfectly, then about:
 - 95% of the data would fall within 2 standard deviations of the mean
 - 99.7% of the data would fall within 3 standard deviations of the mean
 
-Remember that, regardless of the distribution of the data:
-
-- Half of the data will fall below the median, and half above it.
-- Half of the data will fall in the Interquartile Range (IQR).
-
-## How many SBPs are within 1 SD of the mean?
+## SBPs within 1 SD of the mean?
 
 ```{r}
 #| echo: true
 dm431 |>
   count(sbp > mean(sbp) - sd(sbp), 
-        sbp < mean(sbp) + sd(sbp)) |>
-  kable()
+        sbp < mean(sbp) + sd(sbp)) 
 ```
 
 - Note that 306/431 = 0.71, approximately.
 - How does this compare to the expectation under a Normal model? 
 
-## SBP and the mean $\pm$ 2 standard deviations rule?
-
-The total sample size here is 431
+## SBP and $\bar{x} \pm 2 sd$ rule?
 
 ```{r}
 #| echo: true
 dm431 |>
   count(sbp > mean(sbp) - 2*sd(sbp), 
-        sbp < mean(sbp) + 2*sd(sbp)) |>
-  kable()
+        sbp < mean(sbp) + 2*sd(sbp)) 
 ```
 
 - Note that 411/431 = 0.95, approximately.
@@ -596,19 +666,22 @@ The very small *p* value indicates that the test finds some indications **agains
 
 - Exciting, huh? But not actually all that useful, alas.
 
-## Why not test for Normality?
+## Why not test for Normality? (1)
 
-There are multiple hypothesis testing schemes (Kolmogorov-Smirnov, etc.) and each looks for one specific violation of a Normality assumption. None can capture the wide range of issues our brains can envision, and none by itself is great at its job.
+There are multiple hypothesis testing schemes (Kolmogorov-Smirnov, etc.) and each looks for one specific violation of a Normality assumption. 
 
+- None can capture the wide range of issues our brains can envision, and none by itself is great at its job.
 - With any sort of reasonable sample size, the test is so poor at detecting non-normality compared to our eyes, that it finds problems we don't care about and ignores problems we do care about.
+
+## Why not test for Normality? (2)
 
 - And without a reasonable sample size, the test is essentially useless.
 
-Whenever you *can* avoid hypothesis testing and instead actually plot the data, you should plot the data. Sometimes you can't plot (especially with really big data) but the test should be your very last resort.
+Whenever you *can* avoid hypothesis testing and instead actually plot the data, you should **plot the data**. 
 
-# Next Time
+Sometimes you can't plot (especially with really big data) but the test should be your very last resort.
 
-## That's it for today. Coming Up Next...
+## For next time...
 
 - Please complete the **Minute Paper** by noon Wednesday. 
 - Next time, we'll discuss several things, including...
