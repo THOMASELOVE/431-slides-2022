@@ -41,7 +41,7 @@ theme_set(theme_bw())
 ```{r}
 #| echo: true
 quicksur_raw <- 
-  read_csv("c03/data/quick_survey_2022.csv", show_col_types = FALSE) |>
+  read_csv("c04/data/quick_survey_2022.csv", show_col_types = FALSE) |>
   clean_names()
 ```
 
@@ -269,7 +269,7 @@ Are the distributions of student height very different from year to year?
 
 This is a Normal (or Gaussian) distribution with mean 150 and standard deviation 30.
 
-![](c03/images/khan_normal.png)
+![](c04/images/khan_normal.png)
 
 - A Normal distribution is completely specified by its mean and standard deviation. The "bell shape" doesn't change.
 
