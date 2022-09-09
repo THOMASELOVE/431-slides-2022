@@ -1,5 +1,5 @@
 ---
-title: "431 Class 05"
+title: "431 Class 05 (and 06)"
 author: "Thomas E. Love, Ph.D."
 date: "2022-09-13"
 format:
@@ -12,23 +12,25 @@ format:
     footer: "431 Class 05 | 2022-09-13 | https://thomaselove.github.io/431-2022/"
 ---
 
-## Today's Agenda
+## Our Agenda
 
-- Setting up the `dm431` data
-  - Looking closely at `age` and at systolic blood pressure
+These slides will be used in Class 05 **and** Class 06.
 
-> Systolic blood pressure, the top number, measures the force the heart exerts on the walls of the arteries each time it beats. Diastolic blood pressure, the bottom number, measures the force the heart exerts on the walls of the arteries in between beats. (Mayo Clinic)
+- Setting up the `dm431` data, including blood pressures
+- Assessing center, spread, shape of a data batch effectively
+- Some other key visualizations and summaries
 
 ::: aside
 Version `r Sys.time()`
 :::
 
-## Today's R Packages
+## Our R Packages
 
 ```{r}
 #| message: false
 #| echo: true
 
+library(broom) # for neatening model results
 library(janitor)
 library(naniar) # although today's data are complete
 library(patchwork)
@@ -37,6 +39,9 @@ library(tidyverse) # always load tidyverse last
 theme_set(theme_light()) # other TEL option: theme_bw()
 ```
 
+- `broom` package will help us neaten model results
+- `naniar` package helps us identify missing values
+- `theme_light` this time instead of `theme_bw`
 - Use `{r, message = FALSE}` in the code chunk header to silence messages about conflicts between R packages. 
 
 ## Code Chunk Header?
@@ -103,6 +108,14 @@ dbl (10): AGE, N_INCOME, HT, WT, SBP, DBP, A1C, LDL, STATIN, EYE_EXAM
 dm431
 ```
 
+## What is in `dm431`?
+
+Simulated data to match Better Health Partnership specs. 
+
+- This sample includes 431 female adults living with diabetes in Cuyahoga County who are within a certain age range, and who have complete data on all 17 variables included in the tibble.
+- Key variables for now include `AGE`, `SBP` and `DBP`. 
+    - `CLASS5_ID` = identification code.
+
 ## `dm431` variable names
 
 ```{r}
@@ -110,6 +123,10 @@ dm431
 
 names(dm431)
 ```
+
+Variables we'll use now: `AGE`, `SBP` and `DBP`, mostly.
+
+Details on other variables to come later.
 
 ## First and last few subjects
 
@@ -129,13 +146,12 @@ tail(dm431, 2)
 glimpse(dm431)
 ```
 
-
-
 ## What would improve our data ingest?
 
-- Clean up the variable names so that they are lower case (and, if they had any spaces or other problematic characters, replace those with underscores while also de-duplicating)
-- Convert the categorical variables like `insurance` we might wind up analyzing from characters to factors
-- Keep the `class5_id` variable (subject codes) as a character variable
+- Clean up the variable names so that they are lower case 
+    - If names have spaces or other problematic characters, replace them with underscores and also de-duplicate.
+- Convert categorical variables like `insurance` we might wind up analyzing from characters to factors.
+- Keep `class5_id` subject codes as characters.
 
 ## Re-ingesting Today's Data
 
@@ -148,9 +164,19 @@ dm431 <- read_csv("c05/data/dm_431.csv", show_col_types = FALSE) |>
   mutate(class5_id = as.character(class5_id))
 ```
 
-- `clean_names()` comes from the janitor package.
 - The `across(where())` syntax tells R to change everything that gives a TRUE response to “is this a character variable?” into a factor variable.
 - We want `class5_id` to be a character so we don't accidentally analyze it.
+- `clean_names()` comes from the janitor package. --->
+
+## What does `clean_names()` do?
+
+- Resulting names are unique, and use only numbers, letters and underscores.
+- Accented characters are transliterated to ASCII.
+- `case` parameter specifies preferences (default is snake)
+    - `clean_names(case = "snake")` yields `snake_case`
+    - "lower_camel" produces `lowerCamel`
+    - "upper_camel" produces `UpperCamel`
+    - "screaming_snake" yields `ALL_CAPS`
 
 ## The `dm431` data, version 2
 
@@ -160,12 +186,6 @@ dm431 <- read_csv("c05/data/dm_431.csv", show_col_types = FALSE) |>
 dm431
 ```
 
-## What is in `dm431`?
-
-Simulated data to match Better Health Partnership specs. 
-
-- This sample includes 431 female adults living with diabetes in Cuyahoga County who are within a certain age range, and who have complete data on all of the variables listed in this codebook.
-
 ## `dm431` codebook (part 1)
 
 Variable | Description
@@ -173,16 +193,16 @@ Variable | Description
 `class5_id` | subject code (S-001 through S-431)
 `age` | subject's age, in years
 `insurance` | primary insurance, 4 levels
+`sbp` | most recent systolic blood pressure (mm Hg)
+`dbp` | most recent diastolic blood pressure (mm Hg)
 `n_income` | neighborhood median income, in $
-`ht` | height, in meters (2 decimal places)
-`wt` | weight, in kilograms (2 decimal places)
 
 ## `dm431` codebook (part 2)
 
 Variable | Description
 -------: | :--------------------------------------------
-`sbp` | most recent systolic blood pressure (mm Hg)
-`dbp` | most recent diastolic blood pressure (mm Hg)
+`ht` | height, in meters (2 decimal places)
+`wt` | weight, in kilograms (2 decimal places)
 `a1c` | most recent Hemoglobin A1c <br /> (%, with one decimal)
 `ldl` | most recent LDL cholesterol level (mg/dl)
 `tobacco` | most recent tobacco status, 3 levels
@@ -197,7 +217,7 @@ Variable | Description
 `sex` | all subjects turn out to be Female
 `county` | all subjects live in Cuyahoga County
 
-- Again, these are 431 female adults living with diabetes in Cuyahoga County within a certain age range, with complete data on all variables in this codebook.
+- Again, these are 431 female adults living with diabetes in Cuyahoga County within a certain age range, with complete data on the 17 variables in this codebook.
 
 ## New `dm431` variable structure
 
@@ -230,6 +250,91 @@ Can also use other functions from the `naniar` package to understand and cope wi
 
 gg_miss_var(dm431)
 ```
+
+## Systolic and Diastolic BP
+
+> Systolic blood pressure, the top number, measures the force the heart exerts on the walls of the arteries each time it beats. Diastolic blood pressure, the bottom number, measures the force the heart exerts on the walls of the arteries in between beats. (Mayo Clinic)
+
+Question: What is the nature of the relationship between SBP and DBP in the `dm431` data?
+
+## How associated are SBP and DBP?
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = dbp, y = sbp)) +
+  geom_point()
+```
+
+## Add regression line (in red)
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = dbp, y = sbp)) + geom_point() +
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, col = "red")
+```
+
+## SBP and DBP association summaries
+
+```{r}
+#| echo: true
+
+dm431 |> select(dbp, sbp) |> cor()
+```
+
+- What does a Pearson correlation of $r = 0.44$ mean?
+- R-squared = $r^2 = (0.4379)^2 \approx 0.19$ --> meaning? 
+
+```{r}
+#| echo: true
+
+lm(dbp ~ sbp, data = dm431)
+```
+
+- What are the slope and intercept of the regression line?
+
+## Flip roles? Predict `sbp` from `dbp`?
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: true
+dm431 |> 
+  select(sbp, dbp) |> 
+  cor()
+
+lm(sbp ~ dbp, 
+   data = dm431)
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| fig-height: 9
+ggplot(data = dm431, aes(x = sbp, y = dbp)) + geom_point() +
+  geom_smooth(method = "lm", se = TRUE, formula = y ~ x, col = "purple") +
+  labs(title = "Predicting DBP using SBP in dm431",
+       x = "sbp = Systolic BP", y = "dbp = Diastolic BP")
+```
+
+:::
+
+::::
+
+## Add loess smooth in blue
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = dbp, y = sbp)) + geom_point() +
+  geom_smooth(method = "loess", se = FALSE, formula = y ~ x, col = "blue")
+```
+
 
 ## How old are these women?
 
@@ -277,8 +382,21 @@ ggplot(data = dm431, aes(x = age)) +
   scale_y_continuous(NULL, breaks = NULL)
 ```
 
-## Using `psych::describe()`
+## Stem-and-Leaf of `age` values?
 
+```{r}
+#| echo: true
+stem(dm431$age)
+```
+
+## Ages, sorted
+
+```{r}
+dm431 |> select(age) |> arrange(age) |> as.vector()
+```
+
+
+## Using `psych::describe()`
 
 ```{r}
 #| echo: true
@@ -301,19 +419,47 @@ dm431 |> select(age) |> Hmisc::describe()
 ```
 
 - What's new here?
-  - `distinct`, `Info`, `Gmd`
+  - `distinct`, `Info`, `Gmd`  --->
 
 ## New `Hmisc::describe` elements
 
 - `Hmisc::describe` treats a numeric variable as discrete if it has 10 or fewer distinct values
 - `Info` is related to how "continuous" the variable is - it's a relative measure of the available information that is reduced below 1 by ties or non-distinct values
-- `Gmd` = Gini's mean difference measures dispersion (spread). It is the mean absolute difference between any pairs of the 431 observations. Rhymes with "Mini."
+- `Gmd` = Gini's mean difference measures dispersion (spread). It is the mean absolute difference between any pairs of the 431 observations. Pronounced "Ginny".
 
 ---
 
 ![](c05/images/continuous_discrete.png)
 
-# Plotting the `sbp` data to learn about center, spread, outliers and shape
+## Age Breakdown by Insurance
+
+*Note*: Is this actually what I want?
+
+```{r}
+#| echo: true
+dm431 |> tabyl(age, insurance)
+```
+
+## Age Breakdown by Insurance (2)
+
+Do these results make sense to you?
+
+```{r}
+#| echo: true
+mosaic::favstats(age ~ insurance, data = dm431)
+```
+
+```{r}
+#| echo: true
+
+dm431 |> group_by(insurance) |>
+  summarize(n = n(), mean = round_half_up(mean(age),2), 
+            median = median(age), sd = round_half_up(sd(age),2), 
+            skew1 = round_half_up( (mean - median) / sd, 2))
+```
+
+
+# Center, spread, outliers and shape of Blood Pressure Data
 
 ## Systolic BP values from `dm431` (dotplot)
 
@@ -384,6 +530,16 @@ p1 <- ggplot(data = dm431, aes(x = sbp)) +
 
 - You have the Quarto file for every set of slides in the README.
 
+## Histogram of `dm431` Diastolic BP
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = dbp)) +
+  geom_histogram(binwidth = 5, fill = "slateblue", col = "gold") +
+  labs(title = "431 DBP values for women with diabetes")
+```
+
 # Can we describe these data as being well-approximated by a Normal model?
 
 ## What is a Normal Model?
@@ -425,7 +581,9 @@ We evaluate whether a Normal model fits sufficiently well to our data on the bas
 
 ## Simulating Data from a Normal
 
-Simulate a sample of 431 observations from a Normal model with mean and standard deviation equal to the mean and standard deviation of our `dm431` systolic BPs.
+What would a sample of 431 systolic blood pressures from a Normal distribution look like?
+
+- Simulate a sample of 431 observations from a Normal model with mean and standard deviation equal to the mean and standard deviation of our `dm431` systolic BPs.
 
 ```{r}
 #| echo: true
@@ -498,7 +656,7 @@ ggplot(dm431, aes(x = sbp)) +
 
 ## Density, with superimposed Normal
 
-Now we can draw a Normal density curve on top of the rescaled histogram.
+Now we can draw a Normal density curve on top of the rescaled histogram of systolic blood pressures.
 
 ```{r}
 #| echo: true
@@ -514,6 +672,23 @@ ggplot(dm431, aes(x = sbp)) +
   labs(title = "SBP density, with Normal model superimposed")
 ```
 
+## DBP: Density Curve with Normal model
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(dm431, aes(x = dbp)) +
+  geom_histogram(aes(y = stat(density)), bins = 20, 
+                 fill = "slateblue", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$dbp), 
+                            sd = sd(dm431$dbp)),
+                col = "red", lwd = 1.5) +
+  labs(title = "DBP density, with Normal model superimposed")
+```
+
+
 ## Violin and Boxplot for `dm431` SBP
 
 ```{r}
@@ -526,7 +701,7 @@ ggplot(dm431, aes(x = "", y = sbp)) +
                outlier.size = 3, 
                outlier.color = "royalblue") + 
   coord_flip() + 
-  labs(x = "dm431 sample")
+  labs(x = "dm431 Systolic BP")
 ```
 
 ## Observed vs. Simulated Systolic BPs
@@ -552,10 +727,583 @@ p2 <- ggplot(sim_data, aes(x = "", y = sbp)) +
                outlier.color = "deeppink") + 
   lims(y = c(70, 200)) +
   coord_flip() + 
-  labs(x = "Simulated data",
-       title = "Simulated using a Normal distribution")
+  labs(x = "Simulated SBP data",
+       title = "Simulated SBP from Normal distribution")
 
 p1 / p2
+```
+
+## Violin and Boxplot for `dm431` DBP
+
+```{r}
+#| echo: true
+
+ggplot(dm431, aes(x = "", y = dbp)) + 
+  geom_violin(fill = "papayawhip") + 
+  geom_boxplot(width = 0.3, fill = "slateblue", 
+               outlier.size = 3, 
+               outlier.color = "slateblue") + 
+  coord_flip() + 
+  labs(x = "dm431 Diastolic BP")
+```
+
+# Using a Normal Q-Q plot to assess Normality of a batch of data
+
+## Normal Q-Q plot of our simulated data
+
+Remember that these are draws from a Normal distribution, so this is what a sample of 431 Normally distributed data points should look like.
+
+```{r}
+ggplot(sim_data, aes(sample = sbp)) +
+  geom_qq() + geom_qq_line(col = "blue") + 
+  theme(aspect.ratio = 1) +
+  labs(title = "Normal Q-Q plot: Simulated SBP")
+```
+
+## What is a Normal Q-Q Plot? (1)
+
+Tool to help assess whether the distribution of a single sample is well-modeled by the Normal. 
+
+- Suppose we have N data points in our sample. 
+- Normal Q-Q plot will plot N points, on a scatterplot.
+  - Y value is the data value
+  - X value is the expected value for that point in a Normal distribution
+
+## What is a Normal Q-Q Plot? (2)
+
+Using the Normal distribution with the same mean and SD as our sample, R calculates what the minimum value is expected to be, given a sample of size N, then the next smallest value, and so forth all the way up until the maximum value.
+
+- X value in the Normal Q-Q plot is the value that a Normal distribution would take for that rank in the data set.
+- We draw a line through Y = X, and points close to the line therefore match what we'd expect from a Normal distribution.
+
+## How do we create a Normal Q-Q plot?
+
+For our simulated blood pressure data
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(sim_data, aes(sample = sbp)) +
+  geom_qq() + # plot the points
+  geom_qq_line(col = "blue") + # plot the Y = X line
+  theme(aspect.ratio = 1) + # make the plot square
+  labs(title = "Normal Q-Q plot: Simulated SBP")
+```
+
+## Interpreting the Normal Q-Q plot? (1)
+
+The Normal Q-Q plot can help us identify data as well approximated by a Normal distribution, or not, because of:
+
+- **skew** (including distinguishing between right skew and left skew)
+- behavior in the **tails** (which could be heavy-tailed [more outliers than expected] or light-tailed)
+
+1. Normally distributed data are indicated by close adherence of the points to the diagonal reference line.
+
+## Interpreting the Normal Q-Q plot? (2)
+
+2. **Skew** is indicated by substantial curving (on both ends of the distribution) in the points away from the reference line (if both ends curve up, we have right skew; if both ends curve down, this indicates left skew)
+3. An abundance or dearth of **outliers** (as compared to the expectations of a Normal model) are indicated in the tails of the distribution by an "S" shape or reverse "S" shape in the points.
+
+Examples coming up next --->
+
+## These next few slides --> Six Examples
+
+We'll next build useful visualizations and numeric summaries, describing...
+
+1. Data sampled from a Normal distribution
+2. ... a left-skewed distribution
+3. ... a right-skewed distribution
+4. ... a symmetric, discrete distribution
+5. ... a uniform distribution
+6. ... a symmetric, outlier-prone distribution
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 1
+# plotting data sampled from 
+# a Normal distribution
+
+set.seed(431)
+example1 <- rnorm(n = 500, mean = 100, sd = 10)
+sim_study <- tibble(example1)
+
+p1 <- ggplot(sim_study, aes(sample = example1)) +
+  geom_qq(col = "dodgerblue") + geom_qq_line(col = "navy") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 1")
+
+p2 <- ggplot(sim_study, aes(x = example1)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "dodgerblue", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example1), 
+                            sd = sd(sim_study$example1)),
+                col = "navy", lwd = 1.5) +
+  labs(title = "Density Function: Example 1")
+
+p3 <- ggplot(sim_study, aes(x = example1, y = "")) +
+  geom_boxplot(fill = "dodgerblue", outlier.color = "dodgerblue") + 
+  labs(title = "Boxplot: Example 1", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 1. Sample from Normal model")
+
+mosaic::favstats(~ example1, data = sim_study)
+```
+
+## Does a Normal model fit well?
+
+1. Is a Normal Q-Q plot showing something close to a straight line, without clear signs of skew or indications of lots of outliers (heavy-tailedness)?
+
+2. Does a boxplot, violin plot and/or histogram also show a symmetric distribution, where both the number of outliers is modest, and the distance of those outliers from the mean is modest?
+
+3. Do numerical measures match up with the expectations of a normal model?
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 2
+# plotting data sampled from 
+# a left-skewed distribution
+
+set.seed(431)
+sim_study$example2 <- rbeta(n = 500, shape = 2, shape2 = 5, ncp = 100)
+
+p1 <- ggplot(sim_study, aes(sample = example2)) +
+  geom_qq(col = "darkorchid1") + geom_qq_line(col = "blue") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 2")
+
+p2 <- ggplot(sim_study, aes(x = example2)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "darkorchid1", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example2), 
+                            sd = sd(sim_study$example2)),
+                col = "blue", lwd = 1.5) +
+  labs(title = "Density Function: Example 2")
+
+p3 <- ggplot(sim_study, aes(x = example2, y = "")) +
+  geom_boxplot(fill = "darkorchid1", outlier.color = "darkorchid1") + 
+  labs(title = "Boxplot: Example 2", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 2. Left-Skewed Sample")
+
+mosaic::favstats(~ example2, data = sim_study)
+```
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 3
+# plotting data sampled from 
+# a right-skewed distribution
+
+set.seed(431)
+sim_study$example3 <- exp(rnorm(n = 500, mean = 1, sd = 0.5))
+
+p1 <- ggplot(sim_study, aes(sample = example3)) +
+  geom_qq(col = "dodgerblue") + geom_qq_line(col = "navy") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 3")
+
+p2 <- ggplot(sim_study, aes(x = example3)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "dodgerblue", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example3), 
+                            sd = sd(sim_study$example3)),
+                col = "navy", lwd = 1.5) +
+  labs(title = "Density Function: Example 3")
+
+p3 <- ggplot(sim_study, aes(x = example3, y = "")) +
+  geom_boxplot(fill = "dodgerblue", outlier.color = "dodgerblue") + 
+  labs(title = "Boxplot: Example 3", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 3. Right-Skewed Sample")
+
+mosaic::favstats(~ example3, data = sim_study)
+```
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 4
+# plotting data sampled from 
+# a symmetric, but discrete distribution
+
+set.seed(431)
+sim_study$example4 <- rpois(n = 500, lambda = 8)
+
+p1 <- ggplot(sim_study, aes(sample = example4)) +
+  geom_qq(col = "orangered") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 4")
+
+p2 <- ggplot(sim_study, aes(x = example4)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "orangered", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example4), 
+                            sd = sd(sim_study$example4)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Density Function: Example 4")
+
+p3 <- ggplot(sim_study, aes(x = example4, y = "")) +
+  geom_boxplot(fill = "orangered", outlier.color = "orangered") + 
+  labs(title = "Boxplot: Example 4", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 4. Symmetric Discrete Sample")
+
+mosaic::favstats(~ example4, data = sim_study)
+```
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 5
+# plotting data sampled from 
+# a uniform distribution
+
+set.seed(431)
+sim_study$example5 <- runif(n = 500, min = 0, max = 100)
+
+p1 <- ggplot(sim_study, aes(sample = example5)) +
+  geom_qq(col = "dodgerblue") + geom_qq_line(col = "navy") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 5")
+
+p2 <- ggplot(sim_study, aes(x = example5)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "dodgerblue", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example5), 
+                            sd = sd(sim_study$example5)),
+                col = "navy", lwd = 1.5) +
+  scale_x_continuous(limits = c(0, 100)) +
+  labs(title = "Density Function: Example 5")
+
+p3 <- ggplot(sim_study, aes(x = example5, y = "")) +
+  geom_boxplot(fill = "dodgerblue", outlier.color = "dodgerblue") + 
+  labs(title = "Boxplot: Example 5", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 5. Uniform Sample")
+
+mosaic::favstats(~ example5, data = sim_study) 
+```
+
+---
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+# code for Example 6
+# plotting data sampled from 
+# a symmetric, but heavy-tailed (outlier-prone) distribution
+
+set.seed(431)
+sim_study$example6 <- rnorm(n = 500, mean = 50, sd = 10)
+sim_study$example6[14] <- 5
+sim_study$example6[15] <- 3
+sim_study$example6[39] <- 93
+sim_study$example6[38] <- 97
+
+p1 <- ggplot(sim_study, aes(sample = example6)) +
+  geom_qq(col = "orangered") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Example 6")
+
+p2 <- ggplot(sim_study, aes(x = example6)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "orangered", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_study$example6), 
+                            sd = sd(sim_study$example6)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Density Function: Example 6")
+
+p3 <- ggplot(sim_study, aes(x = example6, y = "")) +
+  geom_boxplot(fill = "orangered", outlier.color = "orangered") + 
+  labs(title = "Boxplot: Example 6", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Example 6. Symmetric, Outlier-Prone")
+
+mosaic::favstats(~ example6, data = sim_study) 
+```
+
+## Our 431 Simulated Systolic BPs
+
+```{r}
+p1 <- ggplot(sim_data, aes(sample = sbp)) +
+  geom_qq(col = "chocolate") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: Sim. sbp")
+
+p2 <- ggplot(sim_data, aes(x = sbp)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "chocolate", col = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(sim_data$sbp), 
+                            sd = sd(sim_data$sbp)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Density Function: Sim. sbp")
+
+p3 <- ggplot(sim_data, aes(x = sbp, y = "")) +
+  geom_boxplot(fill = "chocolate", outlier.color = "black") + 
+  labs(title = "Boxplot: Sim. sbp", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Simulated Set of 431 SBPs from Normal")
+```
+
+## Observed Systolic BP values in `dm431`
+
+```{r}
+p1 <- ggplot(dm431, aes(sample = sbp)) +
+  geom_qq(col = "royalblue") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm431 SBP")
+
+p2 <- ggplot(dm431, aes(x = sbp)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "royalblue", col = "gold") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$sbp), 
+                            sd = sd(dm431$sbp)),
+                col = "red", lwd = 1.5) +
+  labs(title = "Density Function: dm431 SBP")
+
+p3 <- ggplot(dm431, aes(x = sbp, y = "")) +
+  geom_boxplot(fill = "royalblue", outlier.color = "royalblue") + 
+  labs(title = "Boxplot: dm431 SBP", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed SBPs in dm431 tibble")
+```
+
+## What Summaries to Report {.smaller}
+
+It is usually helpful to focus on the **shape**, **center** and **spread** of a distribution. <br /> Bock, Velleman and DeVeaux suggest:
+
+- If the data are skewed, report the median and IQR (or the three middle quantiles). 
+    - You may want to include the mean and standard deviation, but you should point out why the mean and median differ. 
+    - The fact that the mean and median do not agree is a sign that the distribution may be skewed. A histogram will help you make that point.
+
+- If the data are symmetric, report the mean and standard deviation, and possibly the median and IQR as well.
+
+- If there are clear outliers and you are reporting the mean and standard deviation, report them with the outliers present and with the outliers removed. 
+    - The differences may be revealing. The median and IQR are not likely to be seriously affected by outliers.
+
+## Which summaries for `sbp`
+
+Should we focus on, in light of our visualizations?
+
+```{r}
+#| echo: true
+
+mosaic::favstats(~ sbp, data = dm431)
+
+dm431 |> select(sbp) |> Hmisc::describe()
+```
+
+
+## Observed Diastolic BP values in `dm431`
+
+```{r}
+p1 <- ggplot(dm431, aes(sample = dbp)) +
+  geom_qq(col = "purple") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm431 DBP")
+
+p2 <- ggplot(dm431, aes(x = dbp)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "purple", col = "gold") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$dbp), 
+                            sd = sd(dm431$dbp)),
+                col = "red", lwd = 1.5) +
+  labs(title = "Density Function: dm431 DBP")
+
+p3 <- ggplot(dm431, aes(x = dbp, y = "")) +
+  geom_boxplot(fill = "purple", outlier.color = "purple") + 
+  labs(title = "Boxplot: dm431 DBP", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed DBPs in dm431 tibble")
+```
+
+## Stem-and-Leaf of `dbp` values?
+
+1. Do we see any implausible diastolic blood pressures here?
+
+```{r}
+#| echo: true
+stem(dm431$dbp, scale = 0.6, width = 55)
+```
+
+::: aside
+I've specified `scale` and `width` just for this slide.
+:::
+
+## Extreme `dbp` values?
+
+Which are the subjects with unusual values of `dbp`?
+
+```{r}
+#| echo: true
+dm431 |>
+  filter(dbp < 50 | dbp > 110) |> 
+  select(class5_id, sbp, dbp)
+```
+
+## Numerical Summaries for `dbp`?
+
+Which summaries seem most useful for the `dm431` `dbp` data?
+
+```{r}
+#| echo: true
+mosaic::favstats(~ dbp, data = dm431)
+
+Hmisc::describe(dm431$dbp)
+```
+
+## Does a Normal Model fit well?
+
+If a Normal model fits our data well, then we should see the following graphical indications:
+
+1. A histogram that is symmetric and bell-shaped.
+2. A boxplot where the box is symmetric around the median, as are the whiskers, without serious outliers.
+3. A normal Q-Q plot that essentially falls on a straight line.
+
+## LDL in `dm431`?
+
+```{r}
+p1 <- ggplot(dm431, aes(sample = ldl)) +
+  geom_qq(col = "tomato") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm431 ldl")
+
+p2 <- ggplot(dm431, aes(x = ldl)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "tomato", col = "gold") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$ldl), 
+                            sd = sd(dm431$ldl)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Density Function: dm431 ldl")
+
+p3 <- ggplot(dm431, aes(x = ldl, y = "")) +
+  geom_boxplot(fill = "tomato", outlier.color = "tomato") + 
+  labs(title = "Boxplot: dm431 ldl", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed LDL in dm431 tibble")
+```
+
+## `dm431`: Neighborhood Income
+
+```{r}
+
+p1 <- ggplot(dm431, aes(sample = n_income)) +
+  geom_qq(col = "seagreen") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm431 Income")
+
+p2 <- ggplot(dm431, aes(x = n_income)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "seagreen", col = "gold") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$n_income), 
+                            sd = sd(dm431$n_income)),
+                col = "red", lwd = 1.5) +
+  labs(title = "Density Function: dm431 Income")
+
+p3 <- ggplot(dm431, aes(x = n_income, y = "")) +
+  geom_boxplot(fill = "seagreen", outlier.color = "seagreen") + 
+  labs(title = "Boxplot: dm431 Income", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed n_income in dm431")
+```
+
+## `dm431`: Natural Logarithm of Income
+
+```{r}
+#| echo: true
+#| output-location: slide
+dm431 <- dm431 |> mutate(log_inc = log(n_income))
+
+p1 <- ggplot(dm431, aes(sample = log_inc)) +
+  geom_qq(col = "seagreen") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: log(dm431 Income)")
+
+p2 <- ggplot(dm431, aes(x = log_inc)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "seagreen", col = "ivory") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$log_inc), 
+                            sd = sd(dm431$log_inc)),
+                col = "red", lwd = 1.5) +
+  labs(title = "Density Function: log(dm431 Income)")
+
+p3 <- ggplot(dm431, aes(x = log_inc, y = "")) +
+  geom_boxplot(fill = "seagreen", outlier.color = "seagreen") + 
+  labs(title = "Boxplot: log(dm431 Income)", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed log(n_income) in dm431")
+```
+
+## `dm431`: Base-10 Logarithm of Income
+
+```{r}
+#| echo: true
+#| output-location: slide
+dm431 <- dm431 |> mutate(log10_inc = log10(n_income))
+
+p1 <- ggplot(dm431, aes(sample = log10_inc)) +
+  geom_qq(col = "seagreen") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: log10(n_income)")
+
+p2 <- ggplot(dm431, aes(x = log10_inc)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "seagreen", col = "ivory") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$log10_inc), 
+                            sd = sd(dm431$log10_inc)),
+                col = "red", lwd = 1.5) +
+  labs(title = "Density Function: log10(n_income)")
+
+p3 <- ggplot(dm431, aes(x = log10_inc, y = "")) +
+  geom_boxplot(fill = "seagreen", outlier.color = "seagreen") + 
+  labs(title = "Boxplot: log10(n_income)", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1))) +
+  plot_annotation("Observed log10(n_income) in dm431")
 ```
 
 # Using Numerical Summaries to Assess Normality: A Good Idea?
@@ -574,6 +1322,7 @@ What can we learn from these comparisons...
 - about the center of the data?
 - about the spread of the data?
 - about the shape of the data?
+- about whether a Normal model fits well?
 
 ## Does a Normal model fit well for my data?
 
@@ -639,7 +1388,7 @@ dm431 |>
 - Note that 306/431 = 0.71, approximately.
 - How does this compare to the expectation under a Normal model? 
 
-## SBP and $\bar{x} \pm 2 sd$ rule?
+## SBP and $\bar{x} \pm 2 s$ rule?
 
 ```{r}
 #| echo: true
@@ -651,24 +1400,84 @@ dm431 |>
 - Note that 411/431 = 0.95, approximately.
 - How does this compare to the expectation under a Normal model? 
 
+## Coverage Probabilities in `dm431`
+
+```{r}
+library(magrittr)
+```
+
+
+Variable | $\bar{x}$ | $s$ = SD | $\bar{x} \pm s$ | $\bar{x} \pm 2s$ | $\bar{x} \pm 3s$ 
+----: | ----: | ----: | ----: | ----: | ----:
+`sbp` | `r round_half_up(mean(dm431$sbp),1)` | `r round_half_up(sd(dm431$sbp),1)` | `r round_half_up(dm431 %$% sum(sbp > mean(sbp) - sd(sbp) & sbp < mean(sbp) + sd(sbp))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(sbp > mean(sbp) - 2*sd(sbp) & sbp < mean(sbp) + 2*sd(sbp))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(sbp > mean(sbp) - 3*sd(sbp) & sbp < mean(sbp) + 3*sd(sbp))/4.31, 1)`%
+`dbp` | `r round_half_up(mean(dm431$dbp),1)` | `r round_half_up(sd(dm431$dbp),1)` | `r round_half_up(dm431 %$% sum(dbp > mean(dbp) - sd(dbp) & dbp < mean(dbp) + sd(dbp))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(dbp > mean(dbp) - 2*sd(dbp) & dbp < mean(dbp) + 2*sd(dbp))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(dbp > mean(dbp) - 3*sd(dbp) & dbp < mean(dbp) + 3*sd(dbp))/4.31, 1)`%
+`age` | `r round_half_up(mean(dm431$age),1)` | `r round_half_up(sd(dm431$age),1)` | `r round_half_up(dm431 %$% sum(age > mean(age) - sd(age) & age < mean(age) + sd(age))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(age > mean(age) - 2*sd(age) & age < mean(age) + 2*sd(age))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(age > mean(age) - 3*sd(age) & age < mean(age) + 3*sd(age))/4.31, 1)`%
+`ldl` | `r round_half_up(mean(dm431$ldl),1)` | `r round_half_up(sd(dm431$ldl),1)` | `r round_half_up(dm431 %$% sum(ldl > mean(ldl) - sd(ldl) & ldl < mean(ldl) + sd(ldl))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(ldl > mean(ldl) - 2*sd(ldl) & ldl < mean(ldl) + 2*sd(ldl))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(ldl > mean(ldl) - 3*sd(ldl) & ldl < mean(ldl) + 3*sd(ldl))/4.31, 1)`%
+`n_income` | `r format(round_half_up(mean(dm431$n_income),0), scientific = FALSE)` | `r format(round_half_up(sd(dm431$n_income),0), scientific = FALSE)` | `r round_half_up(dm431 %$% sum(n_income > mean(n_income) - sd(n_income) & n_income < mean(n_income) + sd(n_income))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(n_income > mean(n_income) - 2*sd(n_income) & n_income < mean(n_income) + 2*sd(n_income))/4.31, 1)`% | `r round_half_up(dm431 %$% sum(n_income > mean(n_income) - 3*sd(n_income) & n_income < mean(n_income) + 3*sd(n_income))/4.31, 1)`%
+
+- Conclusions about utility of the Normal model?
+- Do these match the conclusions from the plots? --->
+
+## Normal Q-Q plots for `dm431`
+
+```{r}
+p1a <- ggplot(dm431, aes(sample = sbp)) +
+  geom_qq(col = "tomato") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Systolic BP")
+
+p1b <- ggplot(dm431, aes(sample = dbp)) +
+  geom_qq(col = "seagreen") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Diastolic BP")
+
+p1c <- ggplot(dm431, aes(sample = age)) +
+  geom_qq(col = "royalblue") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Age")
+
+p1d <- ggplot(dm431, aes(sample = ldl)) +
+  geom_qq(col = "chocolate") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "LDL Cholesterol")
+
+p1e <- ggplot(dm431, aes(sample = n_income)) +
+  geom_qq(col = "darkcyan") + geom_qq_line(col = "red") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Neighborhood Income")
+
+(p1a + p1b + p1c)/(p1d + p1e)
+```
+
+
 # Should we use hypothesis tests to assess Normality?
 
 ## Hypothesis Testing to assess Normality
 
-Don't. Graphical approaches are **far** better than hypothesis tests...
+Don't. Graphical approaches are **far** better than tests...
 
 ```{r}
 #| echo: true
 shapiro.test(dm431$sbp)
 ```
 
-The very small *p* value indicates that the test finds some indications **against** adopting a Normal model for these data. 
+- The very small p value indicates that the test finds some indications against adopting a Normal model for these data.
 
-- Exciting, huh? But not actually all that useful, alas.
+- Exciting, huh? Alas, not actually useful.
+
+## Other Hypothesis Tests of Normality
+
+The `nortest` package, which I don't even install as part of our 431 packages, includes many other possible tests of Normality for a batch of data, including:
+
+- `nortest::ad.test(dm431$sbp)` Anderson-Darling test
+- `nortest::lillie.test(dm431$sbp)` Lilliefors test
+- `nortest::cvm.test(dm431$sbp)` Cramer-von Mises test
+- `nortest::sf.test(dm431$sbp)` Shapiro-Francia test
+- `nortest::pearson.test(dm431$sbp)` Pearson chi-square test
 
 ## Why not test for Normality? (1)
 
-There are multiple hypothesis testing schemes (Kolmogorov-Smirnov, etc.) and each looks for one specific violation of a Normality assumption. 
+There are multiple hypothesis testing schemes and each looks for one specific violation of a Normality assumption. 
 
 - None can capture the wide range of issues our brains can envision, and none by itself is great at its job.
 - With any sort of reasonable sample size, the test is so poor at detecting non-normality compared to our eyes, that it finds problems we don't care about and ignores problems we do care about.
@@ -681,13 +1490,191 @@ Whenever you *can* avoid hypothesis testing and instead actually plot the data, 
 
 Sometimes you can't plot (especially with really big data) but the test should be your very last resort.
 
-## For next time...
+## Does a Normal Model fit well?
 
-- Please complete the **Minute Paper** by noon Wednesday. 
-- Next time, we'll discuss several things, including...
-  - Normal Q-Q plots
-  - Building confidence intervals for numerical summaries of a single batch of quantitative data
-  - Comparing distributions from two batches of quantitative data
+Do we have...
+
+1. A histogram that is symmetric and bell-shaped.
+2. A boxplot where the box is symmetric around the median, as are the whiskers, without severe outliers.
+3. A normal Q-Q plot that essentially falls on a straight line.
+4. If in doubt, maybe compare mean to median re: skew, and consider Empirical Rule to help make tough calls.
+
+Big issue: why do you need to assume a Normal model?
+
+## Comparing SBP by Insurance, Attempt 1
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = sbp, y = insurance)) +
+  geom_violin() +
+  geom_boxplot() +
+  labs(title = "Systolic Blood Pressure by Insurance Type",
+       caption = "dm431 tibble")
+```
+
+## Comparing SBP by Insurance, Attempt 2
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = sbp, y = insurance)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3) +
+  scale_fill_viridis_d() +
+  labs(title = "Systolic Blood Pressure by Insurance Type",
+       caption = "dm431 tibble")
+```
+
+## Comparing SBP by Insurance, Attempt 3
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = sbp, y = insurance)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3, notch = TRUE, outlier.size = 3) +
+  scale_fill_brewer() +
+  guides(fill = "none", col = "none") +
+  labs(title = "Systolic Blood Pressure by Insurance Type",
+       caption = "dm431 tibble",
+       y = "", x = "Systolic BP (mm Hg)")
+```
+
+## Numerical Summaries: SBP by Insurance
+
+```{r}
+#| echo: true
+
+mosaic::favstats(sbp ~ insurance, data = dm431)
+
+mod1 <- lm(sbp ~ insurance, data = dm431)
+
+anova(mod1) # only makes sense if comparing means makes sense
+```
+
+
+## Neighborhood Income and Eye Exam
+
+```{r}
+#| echo: true
+
+dm431 |> select(n_income, eye_exam) |> summary()
+```
+
+## Need to convert `eye_exam` to a factor
+
+Also, we want to create levels Yes (1) and No (0).
+
+```{r}
+#| echo: true
+
+dm431 <- dm431 |>
+  mutate(eye_ex = as_factor(eye_exam),
+         eye_ex = 
+           fct_recode(eye_ex, "Yes" = "1", "No" = "0"))
+
+dm431 |> count(eye_exam, eye_ex)
+```
+
+## Income by Eye Exam, version 1
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = eye_ex, y = n_income)) +
+  geom_boxplot() +
+  labs(title = "Income by Eye Exam", caption = "dm431 tibble")
+```
+
+
+## Income by Eye Exam, 2
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = eye_ex, y = n_income)) +
+  geom_violin(aes(fill = eye_ex)) +
+  geom_boxplot(width = 0.3) +
+  scale_fill_viridis_d(begin = 0.7, option = "A") +
+  guides(fill = "none", col = "none") +
+  labs(title = "Neighborhood Income by Eye Exam Status",
+       caption = "dm431 tibble",
+       y = "Eye Exam?", x = "Neighborhood Income ($)")
+```
+
+## Income by Eye Exam and Model
+
+```{r}
+#| echo: true
+
+mosaic::favstats(n_income ~ eye_ex, data = dm431)
+```
+
+What if we fit a regression model here?
+
+```{r}
+#| echo: true
+mod2 <- lm(n_income ~ eye_ex, data = dm431)
+
+tidy(mod2, conf.int = TRUE, conf.level = 0.90)
+```
+
+## Income by Eye Exam t test?
+
+```{r}
+#| echo: true
+t.test(n_income ~ eye_ex, data = dm431, var.eq = TRUE, conf.level = 0.90)
+```
+
+Does a t test make any sense given non-Normal distribution of `n_income`?
+
+## log10Income) by Eye Exam
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = eye_ex, y = log10(n_income))) +
+  geom_violin(aes(fill = eye_ex)) +
+  geom_boxplot(width = 0.3) +
+  scale_fill_viridis_d(begin = 0.5, option = "B") +
+  guides(fill = "none", col = "none") +
+  labs(title = "log10(Income) by Eye Exam Status",
+       caption = "dm431 tibble",
+       y = "Eye Exam?", x = "Base-10 Log of Income")
+```
+
+## log10(Income) by Eye Exam
+
+```{r}
+#| echo: true
+
+mosaic::favstats(log10(n_income) ~ eye_ex, data = dm431)
+```
+
+What if we fit a regression model here?
+
+```{r}
+#| echo: true
+mod3 <- lm(log10(n_income) ~ eye_ex, data = dm431)
+
+tidy(mod3, conf.int = TRUE, conf.level = 0.90)
+```
+
+## log10(Income) by Eye Exam t test?
+
+```{r}
+#| echo: true
+t.test(log10(n_income) ~ eye_ex, data = dm431, 
+       var.eq = TRUE, conf.level = 0.90)
+```
+
+Is using this t test on log10(income) a sensible choice?
 
 ## Session Information
 
