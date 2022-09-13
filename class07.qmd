@@ -14,11 +14,574 @@ format:
 
 ## Today's Agenda
 
-Details coming soon.
+- Working with `dm1000`, a new data set with some missing values
+- Summarizing Categorical Data
 
 ::: aside
 Version `r Sys.time()`
 :::
+
+## Today's Package Setup
+
+```{r}
+#| echo: true
+
+library(Epi) ## for twoby2() function
+library(gt) ## making tables
+library(gtExtras) ## fancier tables
+library(janitor)
+library(kableExtra) ## for kbl() function
+library(naniar)
+library(patchwork)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+## Loading Some New Data
+
+```{r}
+#| echo: true
+
+dm1000 <- read_csv("c07/data/dm_1000.csv", show_col_types = FALSE) |>
+  clean_names() |>
+  mutate(across(where(is.character), as_factor)) |>
+  mutate(subject = as.character(subject))
+```
+
+- 1000 (simulated) patients with diabetes between the ages of 31 and 75 who live in Cuyahoga County and are in one of four race-ethnicity categories, as well as one of four insurance categories.
+- Same variables we saw in `dm431` last week, but 1000 new subjects, and one new variable (`residence`)
+
+## Listing of `dm1000` tibble
+
+```{r}
+#| echo: true
+
+dm1000
+```
+
+
+## `dm1000` Code Book (1 of 3)
+
+Variable | Description
+-------: | :--------------------------------------------
+`subject` | subject code (M-0001 through M-1000)
+`age` | subject's age, in years
+`insurance` | primary insurance, 4 levels
+`n_income` | neighborhood median income, in $
+`ht` | height, in meters (2 decimal places)
+`wt` | weight, in kilograms (2 decimal places)
+
+## `dm1000` Code Book (2 of 3)
+
+Variable | Description
+-------: | :--------------------------------------------
+`sbp` | most recent systolic blood pressure (mm Hg)
+`dbp` | most recent diastolic blood pressure (mm Hg)
+`a1c` | most recent Hemoglobin A1c (%)
+`ldl` | most recent LDL cholesterol level (mg/dl)
+`tobacco` | most recent tobacco status, 3 levels
+`statin` | 1 = prescribed a statin in past 12m, 0 = not
+
+## Remainder of `dm1000` codebook
+
+Variable | Description
+-------: | :--------------------------------------------
+`eye_exam` | 1 = diabetic eye exam in past 12m, <br /> 0 = no record of exam in past 12m
+`race_ethnicity` | race/ethnicity category, 3 levels
+`sex` | Female or Male
+`county` | all subjects live in Cuyahoga County
+`residence` | Cleveland or Suburbs
+
+## Any Missing Data?
+
+```{r}
+#| echo: true
+
+gg_miss_var(dm1000)
+```
+
+## Counts of missingness, by variable
+
+```{r}
+#| echo: true
+
+miss_var_summary(dm1000)
+```
+
+
+## How should we summarize data with missing values?
+
+- If you are providing a data summary, then you should summarize the complete cases, and specify the number of missing values.
+- If you are intending to use the sample you've collected to make an inference about a process or population or to build a model, then you may want to consider whether or not a complete-case analysis will introduce bias.
+
+
+## What do graphs do with missing data?
+
+```{r}
+#| echo: true
+#| fig-height: 4
+#| warning: true
+
+ggplot(data = dm1000, aes(x = ldl)) +
+  geom_histogram(binwidth = 5, fill = "slateblue", col = "cyan")
+```
+
+## Exploring `ldl` in `dm1000` 
+
+```{r}
+#| echo: true
+#| output-location: slide
+#| message: true
+#| warning: false
+
+p1 <- ggplot(dm1000, aes(sample = ldl)) +
+  geom_qq(col = "slateblue") + 
+  geom_qq_line(col = "magenta") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm1000 LDL")
+
+p2 <- ggplot(dm1000, aes(x = ldl)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "slateblue", col = "cyan") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm1000$ldl, na.rm = TRUE), 
+                            sd = sd(dm1000$ldl, na.rm = TRUE)),
+                col = "magenta", lwd = 1.5) +
+  labs(title = "Density Function: dm1000 LDL")
+
+p3 <- ggplot(dm1000, aes(x = ldl, y = "")) +
+  geom_boxplot(fill = "slateblue", outlier.color = "slateblue") + 
+  labs(title = "Boxplot: dm1000 LDL", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1)))
+```
+
+## Silenced Warnings for previous plot
+
+```
+Warning: Removed 178 rows containing non-finite values (stat_qq).
+Warning: Removed 178 rows containing non-finite values (stat_qq_line).
+Warning: Removed 178 rows containing non-finite values (stat_bin).
+Warning: Removed 178 rows containing non-finite values (stat_boxplot).
+```
+
+## Numerical Summaries and Missing Data
+
+```{r}
+#| echo: true
+#| message: true
+
+summary(dm1000$ldl)
+
+mosaic::favstats(~ ldl, data = dm1000)
+```
+
+- There, I could/should have silenced the message with `{r, message = FALSE}` in the code chunk header.
+
+## Subgroups of Interest
+
+```{r}
+#| echo: true
+
+dm1000 |> tabyl(residence, insurance)
+```
+
+I don't like that `insurance` ordering.
+
+```{r}
+#| echo: true 
+
+dm1000 <- dm1000 |>
+  mutate(insurance = fct_relevel(insurance, 
+                                 "Medicare", "Commercial", "Medicaid"))
+
+dm1000 |> tabyl(residence, insurance)
+```
+
+
+## LDL by Residence
+
+```{r}
+#| echo: true
+#| fig-height: 4
+
+ggplot(data = dm1000, aes(x = residence, y = ldl)) +
+  geom_violin(aes(fill = residence)) +
+  geom_boxplot(width = 0.3) +
+  scale_fill_viridis_d(begin = 0.5, option = "D") +
+  guides(fill = "none") 
+```
+
+## LDL by Residence, again
+
+```{r}
+#| echo: true
+#| fig-height: 4
+
+tempdat <- dm1000 |> filter(complete.cases(residence))
+
+ggplot(data = tempdat, aes(x = residence, y = ldl)) +
+  geom_violin(aes(fill = residence)) +
+  geom_boxplot(width = 0.3) +
+  scale_fill_viridis_d(begin = 0.5, option = "D") +
+  guides(fill = "none") 
+```
+
+## Grouped Numerical Summaries
+
+### LDL by Residence
+
+```{r}
+#| echo: true
+#| message: true
+mosaic::favstats(ldl ~ residence, data = dm1000)
+```
+
+### LDL by Insurance
+
+```{r}
+#| echo: true
+#| message: true
+mosaic::favstats(ldl ~ insurance, data = dm1000)
+```
+
+## LDL by Insurance
+
+```{r}
+#| echo: true
+#| fig-height: 4
+
+ggplot(data = dm1000, aes(x = insurance, y = ldl)) +
+  geom_violin() +
+  geom_boxplot(aes(fill = insurance), width = 0.3, notch = TRUE) +
+  scale_fill_viridis_d(begin = 0.5, option = "A") +
+  guides(fill = "none") 
+```
+
+# Visualizing Categorical Data in `dm1000`
+
+## Categorical Variables from `dm1000`
+
+```{r, message = FALSE}
+#| echo: true
+
+dm_cat <- dm1000 |>
+  select(subject, sex, residence, insurance, 
+         tobacco, race_ethnicity, statin, eye_exam)
+
+dm_cat
+```
+
+## Codebook for `dm_cat`
+
+- `sex` = Female or Male (no missing data)
+- `insurance` = Medicare, Commercial, Medicaid, Uninsured
+- `eye_exam` = 1 for eye examination in past year, else 0
+- `statin` = 1 statin prescription in past year, else 0
+- `race_ethnicity` = 4 levels (Hispanic or Latinx, Non-Hispanic White, Non-Hispanic Black, Non-Hispanic Asian)
+- `residence` = 2 levels (Suburbs, Cleveland), some NA
+- `tobacco` = 3 levels (Current, Former, Never), some NA
+
+## `summary()` check of levels
+
+```{r}
+#| echo: true
+
+dm_cat |> select(-subject) |> summary()
+```
+
+- Do we need to treat `statin` and `eye_exam` differently?
+
+## Using `count` to create a tibble of counts
+
+```{r}
+#| echo: true
+
+dm_cat |> count(tobacco)
+```
+
+## Tabulating a categorical variable
+
+```{r}
+#| echo: true
+
+dm_cat |> tabyl(tobacco) |> 
+  adorn_pct_formatting() |>
+  adorn_totals() 
+```
+
+- Does this order make sense?
+
+## Changing Order of `tobacco` levels
+
+```{r}
+#| echo: true
+
+dm_cat <- dm_cat |> 
+  mutate(tobacco = fct_relevel(tobacco, "Current", "Former"))
+
+dm_cat |> tabyl(tobacco)
+
+```
+
+- Does this order make more sense?
+- `fct_relevel()` is one of many useful tools in `forcats`.
+
+## Using `gt` to make a table prettier
+
+```{r}
+#| echo: true
+
+dm_cat |> 
+  tabyl(tobacco) |> 
+  adorn_pct_formatting() |> 
+  adorn_totals() |> 
+  gt() |> 
+  tab_header(title = "Tobacco Status from dm1000")
+```
+
+- <https://gt.rstudio.com/> provides an amazing array of options.
+
+## `gtExtras` lets us build 538-style tables
+
+```{r}
+#| echo: true
+
+dm_cat |> 
+  tabyl(tobacco) |> 
+  adorn_pct_formatting() |> 
+  adorn_totals() |> 
+  gt() |> 
+  gt_theme_538() |> 
+  tab_header(title = "Table styled like 538")
+```
+
+## `gtExtras` lets us build NYT-style tables
+
+```{r}
+#| echo: true
+
+dm_cat |> tabyl(tobacco) |> adorn_pct_formatting() |> adorn_totals() |> 
+  gt() |> 
+  gt_theme_nytimes() |> 
+  tab_header(title = "Table styled like the New York Times")
+```
+
+- There's also a `gt_theme_espn()` and several others.
+
+## Using `geom_bar` to show a distribution
+
+```{r}
+#| echo: true
+
+ggplot(dm_cat, aes(x = tobacco)) +
+  geom_bar()
+```
+
+## Augmenting the `geom_bar` result 
+
+```{r, echo = TRUE}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm_cat |> filter(complete.cases(tobacco))
+
+ggplot(data = tempdat, aes(x = tobacco, fill = tobacco)) +
+  geom_bar() + 
+  geom_text(aes(label = ..count..), stat = "count", 
+            vjust = 1.5, col = "white", size = 8) +
+  scale_fill_viridis_d(option = "C", end = 0.8) +
+  guides(fill = "none")
+```
+
+## Using `count` to create a tibble of counts
+
+```{r}
+#| echo: true
+
+dm_cat |> count(statin, residence)
+```
+
+## Cross-Tabulations
+
+```{r}
+#| echo: true
+
+dm_cat |> tabyl(insurance, residence) 
+
+dm_cat |> 
+  filter(complete.cases(insurance, residence)) |>
+  tabyl(insurance, residence) |> 
+  adorn_totals(where = c("row", "col")) |>
+  gt()
+```
+
+
+## Were suburban residents more likely to have a statin prescription?
+
+```{r}
+#| echo: true
+
+dm_cat |> 
+  filter(complete.cases(statin, residence)) |>
+  tabyl(residence, statin)
+```
+
+## Revise the order of the statin levels, add percentages
+
+```{r}
+#| echo: true
+
+dm_cat |> filter(complete.cases(statin, residence)) |>
+  mutate(statin = fct_relevel(factor(statin), "1", "0")) |>
+  tabyl(residence, statin)
+```
+
+```{r}
+#| echo: true
+
+dm_cat |> filter(complete.cases(statin, residence)) |>
+  mutate(statin = fct_relevel(factor(statin), "1", "0")) |>
+  tabyl(residence, statin) |> 
+  adorn_percentages(denom = "row") |>
+  adorn_pct_formatting()
+```
+
+## Create using `table` instead
+
+```{r}
+#| echo: true
+
+tempdat1 <- dm_cat |> 
+  filter(complete.cases(statin, residence)) |>
+  mutate(statin = fct_relevel(factor(statin), "1", "0")) 
+
+tab1 <- table(tempdat1$residence, tempdat1$statin)
+
+tab1
+```
+
+## Assess 2x2 table
+
+```{r}
+#| echo: true
+
+twoby2(tab1)  # twoby2() is part of the Epi package
+```
+
+## A three-by-four two-way table
+
+```{r}
+#| echo: true
+
+dm_cat |> filter(complete.cases(tobacco, insurance)) |>
+  tabyl(tobacco, insurance) |>
+  adorn_totals(where = c("row", "col"))
+```
+
+- 3 rows, 4 columns: hence, this is a 3 x 4 table
+- It's a two-way table, because we are studying the association of two variables (`tobacco` and `insurance`)
+- Compare insurance percentages by tobacco group?
+
+## Insurance rates by tobacco group {.smaller}
+
+```{r}
+#| echo: true
+
+dm_cat |> filter(complete.cases(tobacco, insurance)) |>
+  tabyl(tobacco, insurance) |> 
+  adorn_percentages(denominator = "row") |>
+  adorn_totals(where = "col") |> kbl(digits = 3)
+```
+
+- These are **proportions** and not percentages.
+- Proportions fall between 0 and 1: multiply by 100 for percentages.
+
+## Insurance rates by tobacco group?
+
+```{r}
+#| echo: true
+
+tempdat2 <- dm_cat |> 
+  filter(complete.cases(tobacco, insurance)) 
+
+tab2 <- table(tempdat2$tobacco, tempdat2$insurance)
+
+tab2
+
+chisq.test(tab2)
+```
+
+## Using `count` for three variables
+
+```{r}
+#| echo: true
+
+dm_cat |> count(sex, statin, eye_exam)
+```
+
+
+## A three-way table
+
+```{r}
+#| echo: true
+
+dm_cat |> tabyl(statin, residence, sex) |> 
+  adorn_title() 
+```
+
+## Flattening a three-way table
+
+```{r}
+#| echo: true
+
+ftable(dm_cat$sex, dm_cat$residence, dm_cat$statin)
+```
+
+- Note that `ftable()` excludes the missing `residence` values by default.
+
+## Plotting a 3-Way Table (Counts)
+
+```{r}
+#| echo: true
+ggplot(data = filter(dm_cat, complete.cases(residence)),
+       aes(x = residence, y = factor(statin))) +
+   geom_count() +
+   facet_wrap(~ sex, labeller = "label_both")
+```
+
+## Plotting a 3-Way Table (Jitter)
+
+```{r}
+#| echo: true
+ggplot(data = filter(dm_cat, complete.cases(residence)),
+       aes(x = residence, y = sex)) +
+   geom_jitter() +
+   facet_wrap(~ statin, labeller = "label_both")
+```
+
+## RStudio Cheat Sheets
+
+<https://www.rstudio.com/resources/cheatsheets/>
+
+- Data visualization with ggplot2 Cheatsheet shown on next two slides...
+
+Other cheatsheets I use a lot include:
+
+- Data transformation with dplyr
+- Data import with readr, readxl, and googlesheets4
+- Factors with forcats
+- Dynamic documents with rmarkdown
+
+---
+
+![](c07/images/data-visualization_Page_1.png)
+
+---
+
+![](c07/images/data-visualization_Page_2.png)
+
 
 ## Session Information
 
