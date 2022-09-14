@@ -14,11 +14,588 @@ format:
 
 ## Today's Agenda
 
-Details coming soon.
+- Working again with the `dm1000` data from Class 07
+- Confidence Intervals around a Mean
+- Building Visualizations to Compare Distributions
+- Confidence Intervals for a Difference between Means
 
 ::: aside
 Version `r Sys.time()`
 :::
+
+## Today's Packages
+
+```{r}
+#| echo: true
+#| message: false
+
+library(broom)     ## tidying model output
+library(ggridges)  ## help building ridgeline plots
+library(Hmisc)     ## smean.cl.boot() and smean.cl.norm()
+library(janitor)
+library(kableExtra) ## for table neatening
+library(naniar)
+library(patchwork)
+library(readxl)    ## new today, read in .xls or .xlsx files
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+
+## Data Ingest
+
+Today, we'll use an Excel file (.xls, rather than .csv) to import the `dm1000` data.
+
+```{r}
+#| echo: true
+
+dm1000 <- read_excel("c08/data/dm_1000.xls") |>
+  clean_names() |>
+  mutate(across(where(is.character), as_factor)) |>
+  mutate(subject = as.character(subject))
+```
+
+- The `readxl` package is a non-core part of the tidyverse, and also includes functions called `read_xls()` and `read_xlsx()`. 
+- Visit <https://readxl.tidyverse.org/>.
+
+## The `dm1000` tibble
+
+```{r}
+#| echo: true
+
+dm1000
+```
+
+## Estimating a Population Mean from a Sample
+
+Suppose our sample in `dm1000` is a random sample from the population of all Cuyahoga County residents between the ages of 31-75 receiving care for diabetes.
+
+What's a good estimate for the mean Hemoglobin A1c of the people in that population?
+
+- How would we make this estimate using our data?
+- What would we want to know about the data?
+- DTDP
+
+## Hemoglobin A1c in the `dm1000` sample
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(dm1000, aes(sample = a1c)) +
+  geom_qq(col = "firebrick1") + 
+  geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: dm1000 a1c")
+
+p2 <- ggplot(dm1000, aes(x = a1c)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "firebrick1", col = "khaki") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm1000$a1c, na.rm = TRUE), 
+                            sd = sd(dm1000$a1c, na.rm = TRUE)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Density Function: dm1000 a1c")
+
+p3 <- ggplot(dm1000, aes(x = a1c, y = "")) +
+  geom_boxplot(fill = "firebrick1", outlier.color = "firebrick1") + 
+  labs(title = "Boxplot: dm1000 a1c", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1)))
+```
+
+
+## Numerical Summaries of A1c in `dm1000`
+
+- Should we assume the A1c values are drawn from a Normal distribution?
+
+```{r}
+#| echo: true
+
+mosaic::favstats(~ a1c, data = dm1000) |> 
+  kbl(digits = 2) |> 
+  kable_styling(font_size = 32, full_width = FALSE)
+```
+
+- The `kbl()` and `kable_styling()` functions are from the `kableExtra` package.
+  - Read more about [kableExtra in its vignette](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html).
+
+## What if we assume the A1cs are Normally distributed?
+
+Then we could use a linear regression model to obtain a 95% confidence interval for the population mean.
+
+```{r}
+#| echo: true
+
+m1 <- lm(a1c ~ 1, data = dm1000)
+tidy(m1, conf.int = TRUE, conf.level = 0.95) |> 
+  select(estimate, conf.low, conf.high) 
+```
+
+## What is the model we've fit here?
+
+```{r}
+#| echo: true
+
+m1
+```
+
+- This "intercept only" model simply predicts the mean value of our outcome, `a1c`.
+
+## Interpreting this interval? (1/3)
+
+- Our 95% confidence interval for the population mean A1c is (7.73, 7.98). 
+
+We are estimating the mean of the **population** based on a mean from our *sample* of 1000 observations taken (at random, we assume) from that population.
+
+- Sadly, this **doesn't** mean we're 95% confident that the actual population mean is in that range, even though lots and lots of people (incorrectly) assume it does.
+
+## Interpreting this interval? (2/3)
+
+- Our 95% confidence interval for the population mean A1c is (7.73, 7.98). 
+
+Essentially, we have 95% confidence in the **process** of fitting confidence intervals this way. If we fit 100 such confidence intervals to a variety of data sets, we have some reason to anticipate that 95 of them will contain the actual unknown value of the population mean.
+
+## Interpreting this interval? (3/3)
+
+- Our 95% confidence interval for the population mean A1c is (7.73, 7.98). 
+
+That's oversimplifying a little, and a particular concern in this case is that the data are somewhat skewed (at any rate, not very close to Normally distributed) and this may impact our ability to generate accurate and efficient confidence intervals via a linear model like this.
+
+## An Equivalent Approach
+
+We could use a t test to obtain a 95% confidence interval for the population mean.
+
+```{r}
+#| echo: true
+
+tt <- t.test(dm1000$a1c, conf.level = 0.95)
+tidy(tt) |> select(estimate, conf.low, conf.high) 
+```
+
+- This is exactly the same result as we obtain from the linear model `m1`.
+
+## Another Equivalent Approach
+
+We could use a function called `smean.cl.normal()` from the `Hmisc` package to obtain the same 95% confidence interval for the population mean.
+
+```{r}
+#| echo: true
+
+smean.cl.normal(dm1000$a1c, conf.int = 0.95) 
+```
+
+- Again, this is the same result as we have seen previously.
+
+## What if we weren't willing to assume that the A1c values came from a Normal distribution?
+
+- Use the bootstrap to estimate the population mean with 95% confidence.
+
+```{r}
+#| echo: true
+
+set.seed(2022431)  # why do we set a seed here?
+smean.cl.boot(dm1000$a1c, conf.int = 0.95) 
+```
+
+## Bootstrap CI with a different seed
+
+```{r}
+#| echo: true
+set.seed(1234567)  # what happens if we change the seed
+smean.cl.boot(dm1000$a1c, conf.int = 0.95) 
+```
+
+- The `smean.cl.boot()` function comes from the `Hmisc` package.
+
+> Bootstrap is a resampling method where large numbers of samples of the same size are repeatedly drawn, with replacement, from a single original sample.
+
+## 95% CIs for Population Mean A1c {.smaller}
+
+Approach | Estimate | 95% CI | Assume Normality?
+-------- | :--------: | :-------------: | :----------:
+Linear Model <or t test> | 7.853 | (7.725, 7.981) | Yes
+Bootstrap | 7.853 | (7.726, 7.978)   | No
+
+- How does this match up with our understanding of the distribution of the A1c data?
+- What's an appropriate number of decimal places to use here?
+
+```{r}
+#| echo: true
+dm1000 |> select(a1c) |> head(15) |> as.vector()
+```
+
+
+- Might the fairly large sample size (n = 985 non-missing) have something to do with these results?
+
+# Comparing Two Distributions
+
+## Is LDL higher or lower among adults with diabetes who have a statin prescription?
+
+```{r}
+#| echo: true
+#| warning: true
+ggplot(data = dm1000, aes(x = ldl)) +
+  geom_histogram(bins = 15, fill = "green", col = "navy") +
+  facet_wrap(~ statin)
+```
+
+## How might we improve this plot?
+
+1. Remove the warning about non-finite (missing) values.
+2. Place the histograms vertically to ease comparisons.
+3. Fill the histograms differently for statin and no statin.
+4. Augment the labels (0 and 1) to show they identify statin use.
+
+## LDL stratified by `statin` (Plot 2)
+
+```{r}
+#| echo: true
+
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+
+ggplot(data = tempdat, aes(x = ldl, fill = statin)) +
+  geom_histogram(bins = 15, col = "white") +
+  facet_grid(statin ~ ., labeller = "label_both")
+```
+
+## Problems with the previous plot
+
+1. Statin is actually a two-category variable (1 and 0 are just codes) but the legend is treating it as if it was a numeric variable.
+2. Do we actually need the legend (called a guide in R) or can we remove it?
+
+## But `statin` is categorical? (Plot 3)
+
+```{r}
+#| echo: true
+
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+ggplot(data = tempdat, aes(x = ldl, fill = factor(statin))) +
+  geom_histogram(bins = 15, col = "white") +
+  facet_grid(statin ~ ., labeller = "label_both") +
+  guides(fill = "none")
+```
+
+## Faceting {.smaller}
+
+It's very useful to split data into groups and plot each group separately to make comparisons across the groups. We can then draw those subplots side by side.
+
+We have two main tools: `facet_wrap()` and `facet_grid()`
+
+- `facet_wrap(~ grp1)` to obtain plots within each `grp1` arranged into horizontal subpanels and wrapping around, like words on a page.
+- `facet_grid(grp1 ~ .)` to obtain plots within each `grp1` arranged vertically (vertical subpanels)
+- `facet_grid(grp1 ~ grp2)` to obtain plots within each combination of `grp1` and `grp2` with vertical and horizontal subpanels.
+
+## Using `facet_wrap()`
+
+```{r}
+#| echo: true
+#| code-line-numbers: "4|"
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+ggplot(data = tempdat, aes(x = ldl, fill = factor(statin))) +
+  geom_histogram(binwidth = 10, col = "white") +
+  facet_wrap(~ statin, labeller = "label_both") +
+  guides(fill = "none")
+```
+
+## Using `facet_grid()`
+
+```{r}
+#| echo: true
+#| code-line-numbers: "4|"
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+ggplot(data = tempdat, aes(x = ldl, fill = factor(statin))) +
+  geom_histogram(binwidth = 10, col = "white") +
+  facet_grid(statin ~ ., labeller = "label_both") +
+  guides(fill = "none")
+```
+
+## `facet_grid()`: two groupings
+
+```{r}
+#| echo: true
+#| code-line-numbers: "4|"
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin, residence))
+ggplot(data = tempdat, aes(x = ldl, fill = factor(statin))) +
+  geom_histogram(binwidth = 10, col = "white") +
+  facet_grid(statin ~ residence, labeller = "label_both") +
+  guides(fill = "none")
+```
+
+## My Main Source for `ggplot2` Visualization Recipes
+
+<https://r-graphics.org/> (Second Edition)
+
+![](c08/images/R_graphics_cookbook.jpg)
+
+## Comparison of densities 
+
+This plot ignores the relative frequencies.
+
+```{r}
+#| echo: true
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+ggplot(data = tempdat, aes(x = ldl, fill = factor(statin))) +
+  geom_density(alpha = 0.5) + scale_fill_viridis_d() +
+  labs(fill = "Statin")
+```
+
+## Numerical Summaries for Two Groups
+
+```{r}
+#| echo: true
+dm1000 |> filter(complete.cases(statin, ldl)) |> 
+  group_by(statin) |>
+  summarize(n = n(), min = min(ldl), med = median(ldl), 
+            max = max(ldl), mean = mean(ldl), 
+            sd = sd(ldl)) |>
+  kbl(digits = 2)
+```
+
+- Difference in mean(LDL) between the two samples?
+
+## Using `favstats` for LDL by Statin
+
+```{r}
+#| echo: true
+mosaic::favstats(ldl ~ statin, data = dm1000)
+```
+
+## Comparison Boxplot (LDL by statin)
+
+Attempt 1
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+
+ggplot(data = tempdat, aes(x = factor(statin), y = ldl)) +
+  geom_violin() +
+  geom_boxplot(aes(fill = factor(statin)), width = 0.3) + 
+  labs(x = "Statin prescription (0 = no, 1 = yes)", 
+       y = "LDL in mg/dl", fill = "Statin",
+       title = "Boxplot for LDL by Statin (Attempt 1)")
+```
+
+## Try 2: Boxplot for LDL and statin
+
+```{r}
+#| echo: true
+#| output-location: slide
+#| code-line-numbers: "4-7|"
+
+tempdat <- dm1000 |> filter(complete.cases(ldl, statin))
+
+ggplot(data = tempdat, aes(x = factor(statin), y = ldl)) +
+  geom_violin(aes(fill = factor(statin))) +
+  geom_boxplot(width = 0.3, outlier.size = 3, notch = TRUE) + 
+  coord_flip() +
+  guides(fill = "none") +
+  labs(x = "Statin prescription (0 = no, 1 = yes)", 
+       y = "LDL in mg/dl",
+       title = "Boxplot for LDL by Statin (Attempt 2)")
+```
+
+## Setting Up Third Try
+
+```{r}
+#| echo: true
+dm_for_boxplot <- dm1000 |>
+  filter(complete.cases(statin, ldl)) |>
+  mutate(statin_f = fct_recode(factor(statin),
+                               "No Statin" = "0",
+                               "Statin" = "1")) |>
+  select(subject, ldl, statin_f, statin)
+
+head(dm_for_boxplot, 3) # print first three rows
+```
+
+## Third Try on Boxplot for LDL by Statin Use
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm_for_boxplot, aes(x = statin_f, y = ldl)) +
+  geom_violin(aes(fill = statin_f)) +
+  geom_boxplot(width = 0.3, outlier.size = 3, notch = TRUE) + 
+  coord_flip() + guides(fill = "none") +
+  scale_fill_viridis_d(begin = 0.5, option = "D") +
+  labs(x = "Statin prescription", 
+       y = "LDL in mg/dl",
+       title = "Boxplot for LDL by Statin (Attempt 3)")
+```
+
+## 95% CI for difference in means
+
+We want to estimate the difference between the population mean LDL WITH statin and population mean LDL WITHOUT statin.
+
+The sample means, you'll remember, are:
+
+```{r}
+#| echo: true
+mosaic::favstats(ldl ~ statin, data = dm1000) |>
+  select(statin, n, mean, sd, missing) |> 
+  kbl(digits = 2) |> kable_styling(font_size = 24)
+```
+
+## 95% CI for difference in means
+
+- **If** we are willing to assume that LDL follows a Normal distribution in each statin group, then we can use a linear model with one predictor.
+
+```{r}
+#| echo: true
+m2 <- lm(ldl ~ statin, data = dm1000)
+```
+
+## Coefficients of Model `m2`
+
+```{r}
+#| echo: true
+m2
+
+tidy(m2, conf.int = TRUE, conf.level = 0.95) |> 
+  select(term, estimate, conf.low, conf.high) 
+```
+
+## Using `t.test` to get same result
+
+```{r}
+#| echo: true
+mosaic::favstats(ldl ~ statin, data = dm1000) |>
+  select(statin, n, mean, sd, missing) |> 
+  kbl(digits = 2) |> kable_styling(font_size = 24)
+```
+
+```{r}
+#| echo: true
+tt <- t.test(ldl ~ statin, data = dm1000, 
+       var.equal = TRUE, conf.level = 0.95)
+tidy(tt) |> select(estimate, conf.low, conf.high) |>
+  kbl(digits = 3) |> kable_styling(font_size = 32)
+```
+
+
+## 95% CI for difference between population means via the bootstrap
+
+If we are not willing to assume a Normal distribution for LDL in either the statin or the "no statin" group, then we could use a bootstrap approach.
+
+```{r}
+#| echo: true
+source("c08/data/Love-boost.R")
+
+set.seed(123123)
+bootdif(y = dm1000$ldl, g = factor(dm1000$statin), conf.level = 0.95)
+```
+
+## The `bootdif` function 
+
+from `Love-boost.R`
+
+```{r}
+#| echo: true
+`bootdif` <-
+  function(y, g, conf.level=0.95, B.reps = 2000) {
+    lowq = (1 - conf.level)/2
+    g <- as.factor(g)
+    a <- attr(Hmisc::smean.cl.boot(y[g==levels(g)[1]], 
+                          B=B.reps, reps=TRUE),'reps')
+    b <- attr(Hmisc::smean.cl.boot(y[g==levels(g)[2]], 
+                          B=B.reps, reps=TRUE),'reps')
+    meandif <- diff(tapply(y, g, mean, na.rm=TRUE))
+    a.b <- quantile(b-a, c(lowq,1-lowq))
+    res <- c(meandif, a.b)
+    names(res) <- c('Mean Difference',lowq, 1-lowq)
+    res
+  }
+```
+
+## Assumptions behind our intervals
+
+### Assumptions these intervals share:
+
+- random samples from the populations of interest
+- independent samples (samples aren't paired or matched)
+
+### Additional assumptions for linear model:
+
+- Normal distribution in each group (statin and "no statin")
+- variance in each group (statin and "no statin") is equal
+
+## 95% confidence intervals for mean LDL
+
+95% CIs for LDL $\mu_{No Statin} - \mu_{Statin}$
+
+Approach | Estimate | 95% CI 
+--------: | -------: | ----------: 
+linear model | 7.00 | (0.83, 13.17)
+bootstrap | 7.00 | (0.82, 13.31)
+
+Are our conclusions meaningfully different if we do (or do not) assume Normal population distributions of LDL within each group (statin and no statin)?
+
+## Comparing Income by Residence
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(n_income, residence))
+
+ggplot(data = tempdat, aes(x = residence, y = n_income)) +
+  geom_violin(aes(fill = residence)) +
+  geom_boxplot(width = 0.3, outlier.size = 3, notch = TRUE) + 
+  coord_flip() + guides(fill = "none") +
+  scale_fill_viridis_d(alpha = 0.5, option = "C") +
+  labs(x = "Place of Residence", 
+       y = "Median Neighborhood Income ($)",
+       title = "Boxplot for Income by Residence")
+```
+
+## Sample Means, Medians
+
+```{r}
+#| echo: true
+
+mosaic::favstats(n_income ~ residence, data = dm1000) |>
+  select(residence, n, mean, median, sd, missing) |> 
+  kbl(digits = 0) |> kable_styling(font_size = 32)
+```
+
+## Estimating 90% CI for Difference in Means
+
+### Linear Model for Income by Residence
+
+```{r}
+#| echo: true
+
+m3 <- lm(n_income ~ residence, data = dm1000)
+tidy(m3, conf.int = TRUE, conf.level = 0.90) |> 
+  select(term, estimate, conf.low, conf.high) 
+```
+
+### Bootstrap Approach
+
+```{r}
+#| echo: true
+
+set.seed(443322)
+bootdif(y = dm1000$n_income, g = dm1000$residence, 
+        conf.level = 0.90) 
+```
+
+## 90% CI for difference in mean Income
+
+90% CIs for Income $\mu_{Suburbs} - \mu_{Cleveland}$
+
+Approach | Estimate | 90% CI 
+--------: | -------: | ----------: 
+linear model | 19527 | (17765, 21289)
+bootstrap | 19527 | (17545, 21469)
+
+Are our conclusions meaningfully different if we do (or do not) assume Normal population distributions of neighborhood income within each residence group?
 
 ## Session Information
 
