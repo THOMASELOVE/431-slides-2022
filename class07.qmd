@@ -14,7 +14,8 @@ format:
 
 ## Today's Agenda
 
-- Working with `dm1000`, a new data set with some missing values
+- Working with `dm1000`
+- Some More on Identifying Missing Data and working around it
 - Summarizing Categorical Data
 
 ::: aside
@@ -109,8 +110,30 @@ gg_miss_var(dm1000)
 miss_var_summary(dm1000)
 ```
 
+## What does `miss_var_table()` do?
+
+```{r}
+#| echo: true
+miss_var_table(dm1000)
+```
+
+## What does `miss_case_table()` do?
+
+```{r}
+#| echo: true
+miss_case_table(dm1000)
+```
+
+## `miss_case_summary()`?
+
+```{r}
+#| echo: true
+miss_case_summary(dm1000)
+```
 
 ## How should we summarize data with missing values?
+
+It depends on what you'll do with the data.
 
 - If you are providing a data summary, then you should summarize the complete cases, and specify the number of missing values.
 - If you are intending to use the sample you've collected to make an inference about a process or population or to build a model, then you may want to consider whether or not a complete-case analysis will introduce bias.
@@ -397,11 +420,31 @@ ggplot(data = tempdat, aes(x = tobacco, fill = tobacco)) +
 
 ## Using `count` to create a tibble of counts
 
+:::: {.columns}
+
+::: {.column width="50%"}
+
 ```{r}
 #| echo: true
 
-dm_cat |> count(statin, residence)
+dm_cat |> 
+  count(statin, tobacco)
 ```
+
+:::
+
+::: {.column width="50%"}
+```{r}
+#| echo: true
+dm_cat |> 
+  count(insurance, residence)
+```
+:::
+
+::::
+
+
+
 
 ## Cross-Tabulations
 
@@ -428,7 +471,7 @@ dm_cat |>
   tabyl(residence, statin)
 ```
 
-## Revise the order of the statin levels, add percentages
+## Revise statin order, add percentages
 
 ```{r}
 #| echo: true
@@ -518,16 +561,19 @@ chisq.test(tab2)
 ```{r}
 #| echo: true
 
-dm_cat |> count(sex, statin, eye_exam)
+dm_cat |> count(sex, statin, residence)
 ```
 
 
-## A three-way table
+## A three-way table via `tabyl`
 
 ```{r}
 #| echo: true
 
-dm_cat |> tabyl(statin, residence, sex) |> 
+dm_cat |> 
+  filter(complete.cases(statin, residence, sex)) |>
+  tabyl(statin, residence, sex) |> 
+  adorn_totals(where = c("row", "col")) |>
   adorn_title() 
 ```
 
@@ -559,6 +605,38 @@ ggplot(data = filter(dm_cat, complete.cases(residence)),
        aes(x = residence, y = sex)) +
    geom_jitter() +
    facet_wrap(~ statin, labeller = "label_both")
+```
+
+## Multi-categorical 3-Way Table
+
+```{r}
+#| echo: true
+dm_cat |> 
+  filter(complete.cases(insurance, race_ethnicity, tobacco)) |>
+  tabyl(race_ethnicity, insurance, tobacco) |> 
+  adorn_totals(where = c("row", "col")) |>
+  adorn_title() 
+```
+
+## Multi-categorical 3-Way Counts
+
+```{r}
+#| echo: true
+ggplot(data = filter(dm_cat, complete.cases(tobacco)),
+       aes(x = insurance, y = race_ethnicity)) +
+   geom_count() +
+   facet_wrap(~ tobacco, labeller = "label_both")
+```
+
+
+## Multi-categorical 3-Way Jitter Plot
+
+```{r}
+#| echo: true
+ggplot(data = filter(dm_cat, complete.cases(tobacco)),
+       aes(x = insurance, y = race_ethnicity)) +
+   geom_jitter() +
+   facet_wrap(~ tobacco, labeller = "label_both")
 ```
 
 ## RStudio Cheat Sheets
