@@ -14,14 +14,14 @@ format:
 
 ## Our Agenda
 
-These slides will be used in Class 05 **and** Class 06. We'll start this time wherever we left off last time.
+These slides will be used in Class 05 **and** Class 06.
 
 - Setting up the `dm431` data, including blood pressures
 - Assessing center, spread, shape of a data batch effectively
 - Some other key visualizations and summaries
 
 ::: aside
-Version `r Sys.time()`
+**REVISED** Version `r Sys.time()`
 :::
 
 ## Our R Packages
@@ -86,13 +86,13 @@ dm431 <- read_csv("c05/data/dm_431.csv", show_col_types = FALSE)
 
 ```
 
-Rows: 431 Columns: 17
+Rows: 431 Columns: 16
 
 ── Column specification ───────────────────────────────────────────────────────
 
 Delimiter: ","
 
-chr  (7): CLASS5_ID, INSURANCE, TOBACCO, RACE_ETHNICITY, SEX, COUNTY, SUBJECT
+chr  (6): CLASS5_ID, INSURANCE, TOBACCO, RACE_ETHNICITY, SEX, COUNTY
 dbl (10): AGE, N_INCOME, HT, WT, SBP, DBP, A1C, LDL, STATIN, EYE_EXAM
 
 ℹ Use `spec()` to retrieve the full column specification for this data.
@@ -112,7 +112,7 @@ dm431
 
 Simulated data to match Better Health Partnership specs. 
 
-- This sample includes 431 female adults living with diabetes in Cuyahoga County who are within a certain age range, and who have complete data on all 17 variables included in the tibble.
+- This sample includes 431 female adults living with diabetes in Cuyahoga County who are within a certain age range, and who have complete data on all 16 variables included in the tibble.
 - Key variables for now include `AGE`, `SBP` and `DBP`. 
     - `CLASS5_ID` = identification code.
 
@@ -217,7 +217,7 @@ Variable | Description
 `sex` | all subjects turn out to be Female
 `county` | all subjects live in Cuyahoga County
 
-- Again, these are 431 female adults living with diabetes in Cuyahoga County within a certain age range, with complete data on the 17 variables in this codebook.
+- Again, these are 431 female adults living with diabetes in Cuyahoga County within a certain age range, with complete data on the 16 variables in this codebook.
 
 ## New `dm431` variable structure
 
@@ -239,14 +239,12 @@ miss_case_table(dm431)
 Can also use other functions from the `naniar` package to understand and cope with missing values:
 
 - `miss_var_summary()` and `miss_var_table()`
-- Next slide shows `gg_miss_var()` result
-  - Note: warning silenced by `{r, warning = FALSE}` in chunk header.
+- Next slide shows `gg_miss_var()` result --->
 
 ## Plot of missingness in `dm431` tibble
 
 ```{r}
 #| echo: true
-#| warning: false
 
 gg_miss_var(dm431)
 ```
@@ -289,10 +287,38 @@ dm431 |> select(dbp, sbp) |> cor()
 ```{r}
 #| echo: true
 
-lm(dbp ~ sbp, data = dm431)
+lm(sbp ~ dbp, data = dm431)
 ```
 
 - What are the slope and intercept of the regression line?
+
+## Add loess smooth in blue
+
+```{r}
+#| echo: true
+
+ggplot(data = dm431, aes(x = dbp, y = sbp)) + geom_point() +
+  geom_smooth(method = "loess", se = TRUE, formula = y ~ x, col = "blue")
+```
+
+## Linear and loess fits, together
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(data = dm431, aes(x = dbp, y = sbp)) + 
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE, formula = y ~ x, 
+              col = "blue") +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ x, 
+              col = "red") +
+  labs(title = "Predicting Systolic BP using Diastolic BP",
+       subtitle = "with linear and loess fits",
+       caption = "431 women with diabetes from dm431",
+       y = "sbp = Systolic BP", 
+       x = "dbp = Diastolic BP")
+```
 
 ## Flip roles? Predict `sbp` from `dbp`?
 
@@ -306,7 +332,7 @@ dm431 |>
   select(sbp, dbp) |> 
   cor()
 
-lm(sbp ~ dbp, 
+lm(dbp ~ sbp, 
    data = dm431)
 ```
 
@@ -326,15 +352,7 @@ ggplot(data = dm431, aes(x = sbp, y = dbp)) + geom_point() +
 
 ::::
 
-## Add loess smooth in blue
-
-```{r}
-#| echo: true
-
-ggplot(data = dm431, aes(x = dbp, y = sbp)) + geom_point() +
-  geom_smooth(method = "loess", se = FALSE, formula = y ~ x, col = "blue")
-```
-
+# Summarizing A Batch of Data
 
 ## How old are these women?
 
@@ -392,6 +410,7 @@ stem(dm431$age)
 ## Ages, sorted
 
 ```{r}
+#| echo: true
 dm431 |> select(age) |> arrange(age) |> as.vector()
 ```
 
@@ -747,6 +766,21 @@ ggplot(dm431, aes(x = "", y = dbp)) +
   labs(x = "dm431 Diastolic BP")
 ```
 
+# This is where we'll start for Class 06.
+
+## What have I changed? {.smaller}
+
+Since Tuesday, I changed the following things in the slides prior to this one...
+
+- Changed `dm431.csv` file (and posted it on our [431-data page](https://github.com/THOMASELOVE/431-data)) to have 16 rather than 17 variables.
+- Dropped note about warning silencing in slide 21.
+- Corrected placement of SBP and DBP in slides 24-29 to be consistent with using DBP to predict SBP.
+- Added se = TRUE to loess smooth in slide 27.
+- Added slides 28-29 to show loess, linear smooths together and to show labels with title, subtitle and caption.
+- Moved slide 30 to where it is now, and corrected bottom left output.
+- Added slide 31 (title slide).
+- Added code for slide 37.
+
 # Using a Normal Q-Q plot to assess Normality of a batch of data
 
 ## Normal Q-Q plot of our simulated data
@@ -766,14 +800,14 @@ Tool to help assess whether the distribution of a single sample is well-modeled 
 
 - Suppose we have N data points in our sample. 
 - Normal Q-Q plot will plot N points, on a scatterplot.
-  - Y value is the data value
-  - X value is the expected value for that point in a Normal distribution
+  - Y value is the observed data value.
+  - X value is the expected value for that point in a Normal distribution with mean 0 and standard deviation 1.
 
 ## What is a Normal Q-Q Plot? (2)
 
-Using the Normal distribution with the same mean and SD as our sample, R calculates what the minimum value is expected to be, given a sample of size N, then the next smallest value, and so forth all the way up until the maximum value.
+Given a sample of size N, R calculates what the minimum value would be expected to be for a standard Normal distribution (a Normal with mean 0 and standard deviation 1.) Then it calculates what the next smallest value would be, and so forth all the way up to the maximum value.
 
-- X value in the Normal Q-Q plot is the value that a Normal distribution would take for that rank in the data set.
+- X value in the Normal Q-Q plot is the value that a Normal(0,1) distribution would take for that rank in the data.
 - We draw a line through Y = X, and points close to the line therefore match what we'd expect from a Normal distribution.
 
 ## How do we create a Normal Q-Q plot?
@@ -1361,6 +1395,79 @@ dm431 |>
 
 What does this suggest?
 
+## $skew_1$ for other `dm431` variables
+
+Variable | $\bar{x}$ = mean | median | $s$ = SD | $skew_1$
+:------: | ---: | ---: | ---: | ---:
+`sbp` | `r round_half_up(mean(dm431$sbp), 1)` | `r median(dm431$sbp)` | `r round_half_up(sd(dm431$sbp), 1)` | `r round_half_up((mean(dm431$sbp) - median(dm431$sbp)) / sd(dm431$sbp), 2)`
+`dbp` | `r round_half_up(mean(dm431$dbp), 1)` | `r median(dm431$dbp)` | `r round_half_up(sd(dm431$dbp), 1)` | `r round_half_up((mean(dm431$dbp) - median(dm431$dbp)) / sd(dm431$dbp), 2)`
+`age` | `r round_half_up(mean(dm431$age), 1)` | `r median(dm431$age)` | `r round_half_up(sd(dm431$age), 1)` | `r round_half_up((mean(dm431$age) - median(dm431$age)) / sd(dm431$age), 2)`
+`ldl` | `r round_half_up(mean(dm431$ldl), 1)` | `r median(dm431$ldl)` | `r round_half_up(sd(dm431$ldl), 1)` | `r round_half_up((mean(dm431$ldl) - median(dm431$ldl)) / sd(dm431$ldl), 2)`
+`n_income` | `r round_half_up(mean(dm431$n_income))` | `r median(dm431$n_income)` | `r round_half_up(sd(dm431$n_income))` | `r round_half_up((mean(dm431$n_income) - median(dm431$n_income)) / sd(dm431$n_income), 2)`
+
+- Don't draw conclusions without a plot!
+- Does this tell us anything about outliers?
+
+## Histograms for `dm431`
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1a <- ggplot(dm431, aes(x = sbp)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "tomato", col = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$sbp), 
+                            sd = sd(dm431$sbp)),
+                col = "red", lwd = 1.5) +
+  theme(aspect.ratio = 1) + 
+  labs(title = "Systolic BP")
+  
+p1b <- ggplot(dm431, aes(x = dbp)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "seagreen", col = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$dbp), 
+                            sd = sd(dm431$dbp)),
+                col = "red", lwd = 1.5) +
+  theme(aspect.ratio = 1) + 
+  labs(title = "Diastolic BP")
+  
+p1c <- ggplot(dm431, aes(x = age)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "royalblue", col = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$age), 
+                            sd = sd(dm431$age)),
+                col = "red", lwd = 1.5) +
+  theme(aspect.ratio = 1) + 
+  labs(title = "Age")
+
+p1d <- ggplot(dm431, aes(x = ldl)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "chocolate", col = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$ldl), 
+                            sd = sd(dm431$ldl)),
+                col = "red", lwd = 1.5) +
+  theme(aspect.ratio = 1) + 
+  labs(title = "LDL Cholesterol")
+
+p1e <- ggplot(dm431, aes(x = n_income)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 10, fill = "darkcyan", col = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm431$n_income), 
+                            sd = sd(dm431$n_income)),
+                col = "red", lwd = 1.5) +
+  theme(aspect.ratio = 1) + 
+  labs(title = "Neighborhood Income")
+
+(p1a + p1b + p1c)/(p1d + p1e)
+```
+
+
 ## For any data set...
 
 Remember that, regardless of the distribution of the data:
@@ -1421,6 +1528,9 @@ Variable | $\bar{x}$ | $s$ = SD | $\bar{x} \pm s$ | $\bar{x} \pm 2s$ | $\bar{x} 
 ## Normal Q-Q plots for `dm431`
 
 ```{r}
+#| echo: true
+#| output-location: slide
+
 p1a <- ggplot(dm431, aes(sample = sbp)) +
   geom_qq(col = "tomato") + geom_qq_line(col = "black") + 
   theme(aspect.ratio = 1) + 
@@ -1633,7 +1743,7 @@ t.test(n_income ~ eye_ex, data = dm431, var.eq = TRUE, conf.level = 0.90)
 
 Does a t test make any sense given non-Normal distribution of `n_income`?
 
-## log10Income) by Eye Exam
+## log10(Income) by Eye Exam
 
 ```{r}
 #| echo: true
