@@ -20,6 +20,315 @@ Details coming soon.
 Version `r Sys.time()`
 :::
 
+## Today's Setup
+
+```{r}
+#| echo: true
+
+knitr::opts_chunk$set(comment=NA)
+library(broom)
+library(ggridges)            ## help with ridgeline plots
+library(janitor)
+library(kableExtra)
+library(naniar)
+library(patchwork)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+
+## Load Data from `dm_1000.Rds`
+
+```{r}
+#| echo: true
+
+dm1000 <- read_rds("c09/data/dm_1000.Rds")
+
+dim(dm1000)
+```
+
+- See Classes 07 and 08 for details on what I did to create `dm_1000.Rds` and what the 16 variables and 1000 subjects represent.
+
+# Comparing Multiple (more than 2) Batches of Data
+
+## Stratify the subjects by primary `insurance`?
+
+```{r}
+#| echo: true
+dm1000 |> count(insurance) |>
+  mutate(pct = 100*n/sum(n)) |>
+  kbl(digits = 1)
+```
+
+## Missingness?
+
+```{r}
+miss_var_summary(dm1000)
+```
+
+
+
+## Let's look at `n_income` (ignoring 28 NA)
+
+```{r}
+#| echo: true
+#| warning: false
+#| output-location: slide
+
+p1 <- ggplot(dm1000, aes(sample = n_income)) +
+  geom_qq(col = "slateblue") + 
+  geom_qq_line(col = "magenta") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q plot: n_income")
+
+p2 <- ggplot(dm1000, aes(x = n_income)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "slateblue", col = "cyan") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dm1000$n_income, na.rm = TRUE), 
+                            sd = sd(dm1000$n_income, na.rm = TRUE)),
+                col = "magenta", lwd = 1.5) +
+  labs(title = "Density Function: n_income")
+
+p3 <- ggplot(dm1000, aes(x = n_income, y = "")) +
+  geom_boxplot(fill = "slateblue", outlier.color = "slateblue") + 
+  labs(title = "Boxplot: n_income", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1)))
+```
+
+## `n_income` by insurance: Boxplot?
+
+```{r}
+#| echo: true
+#| warning: true
+ggplot(dm1000, aes(x = insurance, y = n_income)) +
+  geom_boxplot()
+```
+
+
+## Build a better boxplot?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+ggplot(data = tempdat, aes(x = insurance, y = n_income/1000)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3, outlier.size = 2) +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_fill_viridis_d(alpha = 0.5) +
+  labs(y = "Neighborhood Income (in $1000s)",
+       x = "Primary Insurance Category",
+       title = "dm1000 Income by Insurance Type")
+```
+
+## Faceted Histograms of `n_income` by `insurance`
+
+```{r}
+#| echo: true
+#| warning: true
+ggplot(data = dm1000, aes(x = n_income)) +
+  geom_histogram(binwidth = 2500) +
+  facet_wrap(~ insurance)
+```
+
+## Improving the Histograms
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+ggplot(data = tempdat, aes(x = n_income, fill = insurance)) +
+  geom_histogram(binwidth = 2500, col = "navy") +
+  scale_x_continuous(
+    breaks = c(5000, 25000, 50000, 75000, 100000)) +
+  guides(fill = "none") +
+  facet_wrap(~ insurance) +
+  labs(title = "Neighborhood Income, in $")
+```
+
+## Comparing Densities of `n_income` by `insurance`
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+ggplot(data = tempdat, aes(x = n_income, fill = insurance)) +
+  geom_density() +
+  scale_fill_viridis_d(alpha = 0.3)
+```
+
+## Using a Ridgeline Plot
+
+```{r}
+#| echo: true
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+ggplot(data = tempdat, aes(x = n_income, y = insurance, 
+                       fill = insurance)) +
+  geom_density_ridges(alpha = 0.5) +
+  labs(title = "Neighborhood Income, in $")
+```
+
+## Sample Summaries of `n_income`
+
+```{r}
+#| echo: true
+mosaic::favstats(n_income ~ insurance, data = dm1000)
+```
+
+
+## Comparing the Means of `n_income`
+
+```{r}
+#| echo: true
+m1 <- lm(n_income ~ insurance, data = dm1000)
+
+tidy(m1) |> select(term, estimate) |> kbl(digits = 2)
+```
+
+- What is m1's estimated `n_income` for each of the insurance groups?
+
+## `m1`: Estimated `n_income` for each insurance
+
+```
+n_income = 33150.74 + 7564.28 Commercial + 732.76 Medicare + 4724.00 Uninsured
+```
+
+Insurance | Estimated `n_income` 
+--------: | --------: 
+Commercial | 33150.74 + 7564.28 = 40715.02 
+Medicare | 33150.74 + 732.76 = 33883.50
+Uninsured | 33150.74 + 4724.00 = 37874.74
+Medicaid | 33150.74
+
+## `m1`: Estimated `n_income` for each insurance
+
+```
+n_income = 33150.74 + 7564.28 Commercial + 732.76 Medicare + 4724.00 Uninsured
+```
+
+Insurance | `m1` est. | Sample mean(`n_income`)
+--------: | :--------: | :--------:
+Commercial | 40715.0 | 40715.0
+Medicare | 33883.5 | 33883.5
+Uninsured | 37874.7 | 33874.7
+Medicaid | 33150.7 | 33150.7
+
+## Model `m1` coefficients
+
+```{r}
+#| echo: true
+tidy(m1, conf.int = TRUE, conf.level = 0.95) |>
+  select(term, estimate, conf.low, conf.high) |>
+  kbl(digits = 2) |> kable_styling(font_size = 28)
+```
+
+- 95% CI for pop. mean `n_income` among adults with Medicaid is (31097, 35205)
+
+## Model `m1` coefficients
+
+```{r}
+#| echo: true
+tidy(m1, conf.int = TRUE, conf.level = 0.95) |>
+  select(term, estimate, conf.low, conf.high) |>
+  kbl(digits = 2) |> kable_styling(font_size = 28)
+```
+
+- 95% CI for Commercial - Medicaid is (4237, 10891)
+- What about Medicare - Medicaid?
+- Uninsured - Medicaid?
+
+## Comparing `n_income` across `insurance` groups
+
+```{r}
+#| echo: true
+
+mosaic::favstats(n_income ~ insurance, data = dm1000)
+```
+
+- Does a comparison of means make sense here?
+- Would it give us the same conclusions as comparing medians?
+
+## Replot on logarithmic (base 10) scale?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+ggplot(data = tempdat, aes(x = insurance, y = n_income)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3, outlier.size = 2) +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_fill_viridis_d(alpha = 0.5) +
+  scale_y_continuous(trans = "log10") +
+  labs(y = "Neighborhood Income (in $, log10 scale)",
+       x = "Primary Insurance Category",
+       title = "dm1000 Income by Insurance Type")
+```
+
+## Does which logarithmic scale you pick matter?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+p1 <- ggplot(data = tempdat, aes(x = insurance, y = n_income)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3, outlier.size = 2) +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_fill_viridis_d(alpha = 0.5) +
+  scale_y_continuous(trans = "log") +
+  labs(y = "Neighborhood Income (in $, log, base e scale)",
+       x = "Primary Insurance Category",
+       title = "Natural Log Scale")
+
+p2 <- ggplot(data = tempdat, aes(x = insurance, y = n_income)) +
+  geom_violin(aes(fill = insurance)) +
+  geom_boxplot(width = 0.3, outlier.size = 2) +
+  guides(fill = "none") +
+  coord_flip() +
+  scale_fill_viridis_d(alpha = 0.5) +
+  scale_y_continuous(trans = "log10") +
+  labs(y = "Neighborhood Income (in $, log10 scale)",
+       x = "Primary Insurance Category",
+       title = "Log (base 10) Scale")
+
+p1 + p2
+```
+
+## Ridgeline Plot of Densities on Log Scale
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+tempdat <- dm1000 |> filter(complete.cases(insurance, n_income))
+
+ggplot(data = tempdat, aes(x = n_income, y = insurance, 
+                       fill = insurance)) +
+  geom_density_ridges(alpha = 0.5) +
+  scale_x_continuous(trans = "log10") +
+  labs(title = "Neighborhood Income, log10 scale")
+```
+
+# More to come!
+
 ## Session Information
 
 ```{r}

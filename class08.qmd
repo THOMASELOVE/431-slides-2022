@@ -597,6 +597,16 @@ bootstrap | 19527 | (17545, 21469)
 
 Are our conclusions meaningfully different if we do (or do not) assume Normal population distributions of neighborhood income within each residence group?
 
+## Save the `dm1000` tibble as an R data set
+
+- Preserves all changes in your R work (factors, etc.)
+
+```{r}
+write_rds(dm1000, "c08/data/dm_1000.Rds")
+```
+
+We'll load this in when we work with these data in Class 09.
+
 ## Session Information
 
 ```{r}
