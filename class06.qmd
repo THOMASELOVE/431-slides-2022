@@ -472,7 +472,7 @@ mosaic::favstats(age ~ insurance, data = dm431)
 #| echo: true
 
 dm431 |> group_by(insurance) |>
-  summarize(n = n(), mean = round_half_up(mean(age),2), 
+  summarize(n = n(), mean = round_half_up(mean(age), 1),  
             median = median(age), sd = round_half_up(sd(age),2), 
             skew1 = round_half_up( (mean - median) / sd, 2))
 ```
