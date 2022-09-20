@@ -316,6 +316,17 @@ dm_cat |> select(-subject) |> summary()
 
 - Do we need to treat `statin` and `eye_exam` differently?
 
+## Creating a `statin_f` factor
+
+```{r}
+#| echo: true
+dm_cat <- dm_cat |>
+  mutate(statin_f = fct_recode(factor(statin), 
+                               "No Statin" = "0", "Statin" = "1"))
+
+dm_cat |> count(statin, statin_f)
+```
+
 ## Using `count` to create a tibble of counts
 
 ```{r}
@@ -350,6 +361,22 @@ dm_cat |> tabyl(tobacco)
 
 - Does this order make more sense?
 - `fct_relevel()` is one of many useful tools in `forcats`.
+
+## Using the `forcats` package
+
+In addition to `fct_relevel()` and `fct_recode()`, ...
+
+- `fct_reorder()`: reordering a factor by another variable
+- `fct_infreq()`: reordering a factor by its frequency of values
+- `fct_lump()`: collapsing least frequent values into "other"
+- and several others
+
+## `forcats` references 
+
+1. I use the `forcats` tools frequently in our Course Notes
+2. <https://forcats.tidyverse.org/> forcats web page, especially [the vignette](https://forcats.tidyverse.org/articles/forcats.html)
+3. RStudio Cheat Sheet on [Factors with forcats (pdf)](https://raw.githubusercontent.com/rstudio/cheatsheets/main/factors.pdf)
+4. [R for Data Science on Factors](https://r4ds.hadley.nz/factors.html)
 
 ## Using `gt` to make a table prettier
 
