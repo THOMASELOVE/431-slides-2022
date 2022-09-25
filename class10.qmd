@@ -14,11 +14,518 @@ format:
 
 ## Today's Agenda
 
-Details coming soon.
-
+- New data on adults with high blood pressure, provided via SPSS file.
+- Partitioning the data into training and testing samples
+- Building a (simple) linear regression model using the training sample; Assessing Regression Assumptions
+- Using our model to predict into our testing sample
+- Comparing our linear model to a (naive) Bayesian alternative
+  
 ::: aside
 Version `r Sys.time()`
 :::
+
+## Today's R packages
+
+```{r}
+#| echo: true
+library(broom)
+library(equatiomatic)
+library(haven)         ## import SPSS .sav file
+library(rstanarm)      ## fit stan_glm() model
+library(janitor)
+library(kableExtra)
+library(naniar)
+library(patchwork)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+## Today's Data
+
+Today's data are found in the `bp_comp.sav` file. We'll use the same data in Class 11, too.
+
+- The data describe 1,500 adults with hypertension living in Cuyahoga County, whose (systolic) blood pressure was measured at baseline, and then again one year later. 
+- We also have information on (baseline) primary insurance, residence (Cleveland or Suburbs), age, LDL and estimated neighborhood income.
+- This is an SPSS file (hence the `.sav` extension.)
+
+## Load New Data from an SPSS file
+
+```{r}
+#| echo: true
+
+bp_full <- read_sav("c10/data/bp_comp.sav") 
+
+bp_full
+```
+
+## `dbl+lbl`?
+
+```{r}
+#| echo: true
+
+bp_full |> select(ins_1, res_1) |> str()
+
+```
+
+- How do we fix this issue? 
+- By changing the labeled numeric variables to factors...
+
+```{r}
+#| echo: true
+bp_full <- bp_full |> mutate(ins_1 = haven::as_factor(ins_1),
+                             res_1 = haven::as_factor(res_1))
+```
+
+## Labeled numerics changed to factors...
+
+```{r}
+bp_full
+```
+
+## Missing Data?
+
+```{r}
+#| echo: true
+
+miss_var_summary(bp_full)
+miss_case_table(bp_full)
+```
+
+## Are the 8 with missing `res_1` also missing `ninc_1`?
+
+```{r}
+ggplot(data = bp_full, aes(x = res_1, y = ninc_1)) +
+  geom_miss_point()
+```
+
+## Partitioning `bp_full` into two groups
+
+Before we do anything else, let's split the data in `bp_full` into two groups:
+
+- a model **development** or **training** sample (70% of rows)
+- a model **evaluation** or **test** sample (the other 30%)
+
+There are many ways to do this in R. 
+
+## A unique indicator for each row...
+
+Each row in `bp_full` is uniquely identified by its `record` code.
+
+```{r}
+#| echo: true
+n_distinct(bp_full$record)
+
+nrow(bp_full)
+```
+
+When this is the case, we can partition the data in `bp_full` into training and test samples, as shown on the next slide...
+
+## Creating training and test samples
+
+```{r}
+#| echo: true
+
+set.seed(20220929) ## set seed so we can replicate sampling
+
+bp_train <- bp_full |> 
+  slice_sample(prop = 0.70, replace = FALSE)
+
+bp_test <- 
+  anti_join(bp_full, bp_train, by = "record")
+
+dim(bp_train)
+dim(bp_test)
+```
+
+## Who's in the training and test samples?
+
+```{r}
+#| echo: true
+bp_train <- bp_train |> arrange(record)
+head(bp_train, 4)
+
+bp_test <- bp_test |> arrange(record)
+head(bp_test, 4)
+```
+
+## Research Questions
+
+1. Can we build an effective model to predict `sbp_2` (SBP after a year) using `sbp_1` (SBP at baseline)? (today)
+
+2. Is the effectiveness of such a model for prediction of `sbp_2` materially affected by whether we also include information about `ins_1` (Primary insurance at baseline)? (next time)
+
+## Modeling Goals
+
+- Model `sbp_2` on the basis of `sbp_1`
+  - using a linear regression model
+  - using a different sort of model
+- Model `sbp_2` using `sbp_1` and `ins_1` (next time)
+  - without an interaction term
+  - including an `sbp_1*ins_1` interaction term
+
+Plan: Build models with the **training** sample, then evaluate their performance in the **testing** sample.
+
+## Training Set: What does Figure 1 suggest?
+
+```{r}
+ggplot(bp_train, aes(x = sbp_1, y = sbp_2)) +
+  geom_point() +
+  labs(title = "Figure 1", x = "Baseline SBP", y = "SBP One Year Later") +
+  theme(aspect.ratio = 1)
+```
+
+## Figure 2. `sbp_2` as a function of `sbp_1`
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(bp_train, aes(x = sbp_1, y = sbp_2)) +
+  geom_point() +
+  theme(aspect.ratio = 1) +
+  geom_smooth(method = "lm", se = TRUE, col = "red") +
+  labs(title = "Figure 2", x = "Baseline SBP", y = "SBP One Year Later")
+```
+
+## Figure 3. Add loess smooth
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(bp_train, aes(x = sbp_1, y = sbp_2)) +
+  geom_point() +
+  theme(aspect.ratio = 1) +
+  geom_smooth(method = "lm", se = FALSE, col = "red") +
+  geom_smooth(method = "loess", se = TRUE, col = "blue") +
+  labs(title = "Figure 3", x = "Baseline SBP", y = "SBP One Year Later")
+```
+
+## Would transforming our data help here?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(bp_train, aes(x = sbp_1, y = sbp_2)) +
+  geom_point() +
+  theme(aspect.ratio = 1) +
+  geom_smooth(method = "lm", se = FALSE, col = "red") +
+  labs(title = "Y vs. X", x = "Baseline SBP", y = "SBP One Year Later")
+
+p2 <- ggplot(bp_train, aes(x = log(sbp_1), y = log(sbp_2))) +
+  geom_point() +
+  theme(aspect.ratio = 1) +
+  geom_smooth(method = "lm", se = FALSE, col = "red") +
+  labs(title = "log(Y) vs. log(X)", x = "log(Baseline SBP)", y = "log(SBP One Year Later)")
+
+p3 <- ggplot(bp_train, aes(x = sqrt(sbp_1), y = sqrt(sbp_2))) +
+  geom_point() +
+  theme(aspect.ratio = 1) +
+  geom_smooth(method = "lm", se = FALSE, col = "red") +
+  labs(title = "sqrt(Y) vs. sqrt(X)", x = "sqrt(Baseline SBP)", y = "sqrt(SBP One Year Later)")
+
+p1 + p2 + p3
+```
+
+
+## Modeling sbp_2 with sbp_1 (bp_train)
+
+```{r}
+#| echo: true
+m1_train <- lm(sbp_2 ~ sbp_1, data = bp_train)
+extract_eq(m1_train, use_coefs = TRUE, coef_digits = 2)
+
+tidy(m1_train, conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, conf.low, conf.high) |> kbl(digits = 2)
+```
+
+## Get Fitted Values and Residuals
+
+```{r}
+#| echo: true
+m1_train_aug <- augment(m1_train, data = bp_train)
+
+m1_train_aug |> 
+  select(record, sbp_2, sbp_1, .fitted, .resid) |> 
+  head() |> kbl(digits = 2) |> kable_styling(font_size = 28)
+```
+
+## Assess Fit Quality with `glance()`
+
+```{r}
+#| echo: true
+
+glance(m1_train) |> 
+  select(nobs, r.squared, AIC, sigma, df, df.residual) |> 
+  kbl(digits = c(0,3,1,2,0,0))
+```
+
+- `r.squared` = $R^2$, the proportion of variation in `sbp_2` accounted for by the model using `sbp_1`. 
+  - indicates improvement over predicting mean(`sbp_2`) for everyone
+- `sigma` = residual standard error 
+
+## Why I like `tidy()` and other `broom` functions
+
+![](c10/images/broom_package.png)
+
+<https://github.com/allisonhorst/stats-illustrations>
+
+## Summarizing the `m1_train` model
+
+```{r}
+#| echo: true
+summary(m1_train)
+```
+
+## Linear Model Assumptions
+
+1. Linearity
+2. Homoscedasticity (Constant Variance)
+3. Normality
+
+all checked with residual plots
+
+## Linear Model Assumptions?
+
+We assume that:
+
+1. the regression relationship is linear, rather than curved, and we can assess this by plotting the regression residuals (prediction errors) against the fitted values and looking to see if a curve emerges.
+
+- Do we see a curve in the plot we draw next?
+
+## Plot residuals vs. fitted values from `m1_train`
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+ggplot(m1_train_aug, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red",
+              formula = y ~ x, se = FALSE) + 
+  geom_smooth(method = "loess", col = "blue",
+              formula = y ~ x, se = FALSE) +
+  labs(title = "m1_train: Residuals vs. Fitted Values", 
+       x = "Fitted sbp values", y = "Residuals")
+```
+
+## Linear Model Assumptions?
+
+We assume that:
+
+2. the regression residuals show similar variance across levels of the fitted values, and again we can get insight into this by plotting residuals vs. predicted values.
+
+- Do we see a fan shape in the plot we draw next?
+- Does the variation change materially as we move from left to right?
+
+## Plot residuals vs. fitted values from `m1_train`
+
+```{r}
+ggplot(m1_train_aug, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red",
+              formula = y ~ x, se = FALSE) + 
+  geom_smooth(method = "loess", col = "blue",
+              formula = y ~ x, se = FALSE) +
+  labs(title = "m1_train: Residuals vs. Fitted Values", 
+       x = "Fitted sbp values", y = "Residuals")
+```
+
+## A Fuzzy Football
+
+- What we want to see in the plot of residuals vs. fitted values is a "fuzzy football."
+
+![](c10/images/fuzzy_football.png)
+
+
+## Linear Model Assumptions?
+
+We assume that:
+
+3. the regression residuals (prediction errors) are well described by a Normal model, and we can assess this with all of our usual visualizations to help decide on whether a Normal model is reasonable for a batch of data.
+
+- Do the residuals from our model appear to follow a Normal distribution? 
+
+## Check Normality of `m1_train` residuals
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(m1_train_aug, aes(sample = .resid)) +
+  geom_qq(col = "seagreen") + geom_qq_line(col = "black") + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Normal Q-Q: 1050 `m1_train` Residuals")
+
+p2 <- ggplot(m1_train_aug, aes(x = .resid)) +
+  geom_histogram(aes(y = stat(density)), 
+                 bins = 20, fill = "seagreen", col = "yellow") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(m1_train_aug$.resid), 
+                            sd = sd(m1_train_aug$.resid)),
+                col = "black", lwd = 1.5) +
+  labs(title = "Hist + Normal Density: `m1_train` Residuals")
+
+p3 <- ggplot(m1_train_aug, aes(x = .resid, y = "")) +
+  geom_boxplot(fill = "seagreen", outlier.color = "seagreen") + 
+  stat_summary(fun = "mean", geom = "point", 
+               shape = 23, size = 3, fill = "white") +  
+  labs(title = "Boxplot: `m1_train` Residuals", y = "")
+
+p1 + (p2 / p3 + plot_layout(heights = c(4,1)))
+```
+
+## Numerical Summary of Residuals?
+
+```{r}
+#| echo: true
+
+mosaic::favstats(~ .resid, data = m1_train_aug) |>
+  kbl(digits = 1) |> kable_styling(font_size = 24)
+```
+
+# Making Predictions Out of Sample (into the Test Sample)
+
+## Use model `m1_train` to predict SBP_2 in `bp_test`
+
+```{r}
+#| echo: true
+m1_test_aug <- augment(m1_train, newdata = bp_test)
+
+m1_test_aug |> nrow()
+```
+
+- Now, we have predictions from `m1_train` for the `r m1_test_aug |> nrow()` subjects in `bp_test`.
+- Remember we didn't use the `bp_test` data to build `m1_train`.
+
+## `m1_train` first few results
+
+```{r}
+#| echo: true
+m1_test_aug |>
+  select(record, sbp_2, sbp_1, .fitted, .resid) |> 
+  slice_head(n = 4) |> 
+  kbl(dig = 2) |> 
+  kable_styling(font_size = 24)
+```
+
+Recall the `m1_train` model:
+
+```{r}
+extract_eq(m1_train, use_coefs = TRUE, coef_digits = 3)
+```
+
+## Out-of-Sample (Test Set) Error Summaries
+
+We summarize both absolute values of our errors:
+
+```{r}
+#| echo: true
+mosaic::favstats(~ abs(.resid), data = m1_test_aug) |>
+  select(n, min, median, max, mean, sd) |>
+  kbl(digits = 2) |> kable_styling(font_size = 32)
+```
+
+and also summarize the squared prediction errors:
+
+```{r}
+#| echo: true
+mosaic::favstats(~ (.resid^2), data = m1_test_aug) |>
+  mutate("RMSPE" = sqrt(mean)) |>
+  select(n, mean, RMSPE) |>
+  kbl(digits = 2) |> kable_styling(font_size = 32)
+```
+
+## Named Summaries for `m1`
+
+derived from the summaries provided in the previous slide...
+
+- Mean Absolute Prediction Error (MAPE) = `r round_half_up(mean(abs(m1_test_aug$.resid)),2)`
+
+- Maximum Absolute Prediction Error (max Error or maxE) = `r round_half_up(max(abs(m1_test_aug$.resid)),2)`
+
+- (square Root of) Mean Squared Prediction Error (RMSPE) = `r round_half_up(sqrt(mean(m1_test_aug$.resid^2)),2)`
+
+These summaries are used primarily to compare two models to each other.
+
+## Is this the only linear model R can fit to these data?
+
+Nope.
+
+```{r}
+#| echo: true
+m2_train <- stan_glm(sbp_2 ~ sbp_1, data = bp_train)
+```
+
+## Bayesian fitted linear model
+
+```{r}
+#| echo: true
+print(m2_train)
+```
+
+## Compare the coefficients
+
+Is the Bayesian model (with default prior) very different from our `lm` in this situation?
+
+```{r}
+#| echo: true
+broom::tidy(m1_train) |> select(term, estimate, std.error) # fit with lm
+
+broom.mixed::tidy(m2_train) # stan_glm with default priors
+```
+
+## Test Sample fits and residuals from Bayesian model
+
+```{r}
+#| echo: true
+m2_test_aug <- bp_test |> select(record, sbp_2, sbp_1) |>
+  mutate(.fitted = predict(m2_train, newdata = bp_test),
+         .resid = sbp_2 - .fitted)
+
+m2_test_aug |> 
+  select(record, sbp_2, sbp_1, .fitted, .resid) |> 
+  slice_head(n = 4) |> kbl(dig = 2) |> kable_styling(font_size = 24)
+```
+
+## Out-of-Sample (Test Set) Error Summaries (`m2`)
+
+```{r}
+#| echo: true
+mosaic::favstats(~ abs(.resid), data = m2_test_aug) |>
+  select(n, min, median, max, mean, sd) |>
+  kbl(digits = 2) |> kable_styling(font_size = 32)
+
+mosaic::favstats(~ (.resid^2), data = m2_test_aug) |>
+  mutate("RMSPE" = sqrt(mean)) |>
+  select(n, mean, RMSPE) |>
+  kbl(digits = 2) |> kable_styling(font_size = 32)
+```
+
+## Comparing the Models
+
+Test Set Error Summary | OLS model `m1` | Bayes model `m2`
+----: | ----: | -----:
+Mean Absolute Prediction Error | `r round_half_up(mean(abs(m1_test_aug$.resid)),3)` | `r round_half_up(mean(abs(m2_test_aug$.resid)),3)`
+Maximum Absolute Prediction Error | `r round_half_up(max(abs(m1_test_aug$.resid)),3)` | `r round_half_up(max(abs(m2_test_aug$.resid)),3)`
+Root Mean Squared Prediction Error | `r round_half_up(sqrt(mean(m1_test_aug$.resid^2)),3)` | `r round_half_up(sqrt(mean(m2_test_aug$.resid^2)),3)`
+
+## Save as R data sets for next time
+
+Lastly for today, we'll save our full, training and testing samples as R data sets.
+
+```{r}
+#| echo: true
+write_rds(bp_full, "c10/data/bp_full.Rds")
+write_rds(bp_train, "c10/data/bp_train.Rds")
+write_rds(bp_test, "c10/data/bp_test.Rds")
+```
+
+### Next time, we'll address our second research question
+
+What if we add Insurance as a predictor in our model?
 
 ## Session Information
 
