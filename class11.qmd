@@ -1,0 +1,483 @@
+---
+title: "431 Class 11"
+author: "Thomas E. Love, Ph.D."
+date: "2022-10-04"
+format:
+  revealjs: 
+    theme: simple
+    self-contained: true
+    slide-number: true
+    preview-links: auto
+    logo: 431-class-foot2.png
+    footer: "431 Class 11 | 2022-10-04 | https://thomaselove.github.io/431-2022/"
+---
+
+## Today's Agenda
+
+- Building models for `sbp_2` using `sbp_1` and `insur_1`
+  - without an interaction term
+  - with an interaction
+- Comparing our four models (two from Class 10 and two today)
+  
+::: aside
+Version `r Sys.time()`
+:::
+
+## Today's R packages
+
+```{r}
+#| echo: true
+library(broom)
+library(equatiomatic)
+library(haven)         ## import SPSS .sav file
+library(rstanarm)      ## fit stan_glm() model
+library(janitor)
+library(kableExtra)
+library(naniar)
+library(patchwork)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+## Today's Data
+
+Today's data describe 1,500 adults with hypertension living in Cuyahoga County, whose (systolic) blood pressure was measured at baseline, and then again one year later. We also have information on (baseline) primary insurance, and other things.
+
+- We created and partitioned the data back in Class 10
+
+```{r}
+#| echo: true
+
+bp_full <- read_rds("c11/data/bp_full.Rds") 
+bp_train <- read_rds("c11/data/bp_train.Rds") 
+bp_test <- read_rds("c11/data/bp_test.Rds") 
+
+```
+
+## Research Questions
+
+1. Can we build an effective model to predict `sbp_2` (SBP after a year) using `sbp_1` (SBP at baseline)? (addressed in class 10)
+
+2. Is the effectiveness of such a model for prediction of `sbp_2` materially affected by whether we also include information about `ins_1` (Primary insurance at baseline)? (today)
+
+## Modeling Goals {.smaller}
+
+### Class 10
+
+- Model `sbp_2` on the basis of `sbp_1`
+  - using a linear regression model
+  - using a (naive) Bayesian model
+
+### Today
+  
+- Model `sbp_2` using `sbp_1` and `ins_1`
+  - without an interaction term
+  - including an `sbp_1*ins_1` interaction term
+
+Build models with **training** sample, evaluate performance in **testing** sample.
+
+## Previous models (`m1` and `m2`)
+
+Fit in training sample, then evaluate in testing sample.
+
+```{r}
+#| echo: true
+
+m1_train <- lm(sbp_2 ~ sbp_1, data = bp_train)
+m1_test_aug <- augment(m1_train, newdata = bp_test)
+
+m2_train <- stan_glm(sbp_2 ~ sbp_1, data = bp_train, refresh = 0)
+m2_test_aug <- bp_test |> select(record, sbp_2, sbp_1) |>
+  mutate(.fitted = predict(m2_train, newdata = bp_test),
+         .resid = sbp_2 - .fitted)
+```
+
+## Which priors did we use in `m2_train`?
+
+For more, visit <https://mc-stan.org/rstanarm/articles/priors.html>.
+
+```{r}
+#| echo: true
+prior_summary(m2_train)
+```
+
+## Add in `ins_1` information
+
+```{r}
+ggplot(data = bp_train, aes(x = sbp_1, y = sbp_2, 
+                            col = ins_1, group = ins_1)) +
+  geom_point() + scale_color_viridis_d(option = "A", end = 0.8)
+```
+
+## Faceting by `ins_1` group
+
+```{r}
+#| echo: true
+ggplot(data = bp_train, aes(x = sbp_1, y = sbp_2, col = ins_1)) +
+  geom_point() + scale_color_viridis_d(option = "A", end = 0.8) +
+  facet_wrap(~ ins_1) + guides(col = "none")
+```
+
+## Two possible models
+
+```{r}
+#| echo: true
+m3_train <- lm(sbp_2 ~ sbp_1 + ins_1, data = bp_train)
+m4_train <- lm(sbp_2 ~ sbp_1 * ins_1, data = bp_train)
+```
+
+- What is the difference between `m3` and `m4`?
+- Model `m3` does not include an interaction term, while `m4` does.
+- How does this work in practice?
+
+## Equation for `m3`
+
+```
+m3_train <- lm(sbp_2 ~ sbp_1 + ins_1, data = bp_train)
+```
+
+```{r}
+#| echo: true
+extract_eq(m3_train, use_coefs = TRUE, operator_location = "start",
+           wrap = TRUE, terms_per_line = 2, coef_digits = 2)
+```
+
+In model `m3`, the intercept term of the `sbp_1`-`sbp_2` relationship varies depending on insurance.
+
+## Model `m3` by Insurance Type {.smaller}
+
+```{r}
+extract_eq(m3_train, use_coefs = TRUE, operator_location = "start",
+           wrap = TRUE, terms_per_line = 4, coef_digits = 2, 
+           font_size = "small")
+```
+
+Insurance | Estimated `sbp_2`
+------------: | :-----------------------:
+Commmercial | 89.36 + 0.33 `sbp_1`
+Medicaid | ??
+Medicare | ??
+Uninsured | ??
+
+
+## Model `m3` by Insurance Type {.smaller}
+
+```{r}
+extract_eq(m3_train, use_coefs = TRUE, operator_location = "start",
+           wrap = TRUE, terms_per_line = 4, coef_digits = 2, 
+           font_size = "small")
+```
+
+Insurance | Estimated `sbp_2`
+------------: | :-----------------------:
+Commmercial | 89.36 + 0.33 `sbp_1`
+Medicaid | (89.36 - 0.83) + 0.33 `sbp_1` <br />= **88.53** + 0.33 `sbp_1`
+Medicare | (89.36 - 2.41) + 0.33 `sbp_1` <br />= **86.95** + 0.33 `sbp_1`
+Uninsured | (89.36 + 1.38) + 0.33 `sbp_1` <br />= **90.74** + 0.33 `sbp_1`
+
+## The `m3` model (pictured)
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+m3_train_aug <- augment(m3_train, data = bp_train)
+
+p1 <- ggplot(m3_train_aug, aes(x = sbp_1, y = sbp_2, group = ins_1)) +
+  geom_point(alpha = 0.3) + 
+  geom_line(aes(x = sbp_1, y = .fitted, col = ins_1), lwd = 1.5) +
+  labs(title = "m3: Same Slope, Intercepts vary by insurance")
+
+p2 <- ggplot(m3_train_aug, aes(x = sbp_1, y = sbp_2, 
+                         col = ins_1, group = ins_1)) +
+  geom_point() + geom_line(aes(x = sbp_1, y = .fitted), col = "black") +
+  facet_wrap( ~ ins_1) + guides(col = "none")
+
+p1 + p2
+```
+
+## Tidied Model `m3` coefficients
+
+Again, in model `m3`, only the intercept of the `sbp_1` to `sbp_2` model varies depending on the `ins_1` category.
+
+```{r}
+#| echo: true
+
+tidy(m3_train, conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, conf.low, conf.high) |>
+  kbl(digits = c(0, 2, 2, 2, 2)) |> kable_styling(font_size = 28)
+```
+
+
+## Equation for `m4`
+
+```{r}
+#| echo: true
+extract_eq(m4_train, use_coefs = TRUE, operator_location = "start", wrap = TRUE,
+           terms_per_line = 1, coef_digits = 2, font_size = "small")
+```
+
+## Model `m4` by Insurance Type {.smaller}
+
+```{r}
+extract_eq(m4_train, use_coefs = TRUE, operator_location = "start",
+           wrap = TRUE, terms_per_line = 3, coef_digits = 2, 
+           font_size = "small")
+```
+
+Insurance | Estimated `sbp_2`
+------------: | :-----------------------:
+Commmercial | 90.33 + 0.32 `sbp_1`
+Medicaid | ??
+Medicare | ??
+Uninsured | ??
+
+## Model `m4` by Insurance Type {.smaller}
+
+```{r}
+extract_eq(m4_train, use_coefs = TRUE, operator_location = "start",
+           wrap = TRUE, terms_per_line = 3, coef_digits = 2, 
+           font_size = "small")
+```
+
+Insurance | Estimated `sbp_2`
+------------: | :-----------------------:
+Commmercial | 90.33 + 0.32 `sbp_1`
+Medicaid | (90.33 + 1.56) + (0.32 - 0.02) `sbp_1` <br /> = **91.89** + **0.30** `sbp_1`
+Medicare | (90.33 - 4.86) + (0.32 + 0.02) `sbp_1` <br /> = **85.47** + **0.34** `sbp_1`
+Uninsured | (90.33 - 16.75) + (0.32 + 0.13) `sbp_1` <br /> = **73.58** + **0.45** `sbp_1`
+
+## The `m4` model (pictured)
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+m4_train_aug <- augment(m4_train, data = bp_train)
+
+p1 <- ggplot(m4_train_aug, aes(x = sbp_1, y = sbp_2, group = ins_1)) +
+  geom_point(alpha = 0.3) + 
+  geom_line(aes(x = sbp_1, y = .fitted, col = ins_1), lwd = 1.5) +
+  labs(title = "m4: Slopes and Intercepts vary by insurance")
+
+p2 <- ggplot(m4_train_aug, aes(x = sbp_1, y = sbp_2, 
+                         col = ins_1, group = ins_1)) +
+  geom_point() + geom_line(aes(x = sbp_1, y = .fitted), col = "black") +
+  facet_wrap( ~ ins_1) + guides(col = "none")
+
+p1 + p2
+```
+
+## Models m3 and m4
+
+```{r}
+#| echo: true
+m3_train <- lm(sbp_2 ~ sbp_1 + ins_1, data = bp_train)
+m4_train <- lm(sbp_2 ~ sbp_1 * ins_1, data = bp_train)
+```
+
+- What is the difference between `m3` and `m4`?
+  - Model `m3` will allow **only the intercept** term of the `sbp_1`-`sbp_2` relationship to vary depending on insurance.
+  - Model `m4` will allow **both the slope and intercept** of the `sbp_1`-`sbp_2` relationship to vary depending on insurance.
+
+## Tidied Model `m4` coefficients
+
+```{r}
+#| echo: true
+
+tidy(m4_train, conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, conf.low, conf.high) |>
+  kbl(digits = c(0, 2, 2, 2, 2)) |> kable_styling(font_size = 24)
+```
+
+
+## Fit within the Training Sample
+
+### Model `m3` (no interaction)
+
+```{r}
+#| echo: true
+glance(m3_train) |> select(r.squared, sigma, AIC, df, df.residual, nobs) |> 
+  kbl(digits = c(3, 1, 1, 0, 0, 0)) |> kable_styling(font_size = 32)
+```
+
+### Model `m4` (with `sbp_1`-`insurance` interaction)
+
+```{r}
+#| echo: true
+glance(m4_train) |> select(r.squared, sigma, AIC, df, df.residual, nobs) |> 
+  kbl(digits = c(3, 1, 1, 0, 0, 0)) |> kable_styling(font_size = 32)
+```
+
+## Augmenting and Testing <br /> Models `m3` and `m4`
+
+```{r}
+#| echo: true
+
+## in the training sample (for residual plots)
+
+m3_train_aug <- augment(m3_train, data = bp_train)
+m4_train_aug <- augment(m4_train, data = bp_train)
+
+# in the test sample (calculating prediction errors)
+
+m3_test_aug <- augment(m3_train, newdata = bp_test)
+m4_test_aug <- augment(m4_train, newdata = bp_test)
+```
+
+## Residuals vs. Fitted Values Plots
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(m3_train_aug, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red",
+              formula = y ~ x, se = FALSE) + 
+  geom_smooth(method = "loess", col = "blue",
+              formula = y ~ x, se = FALSE) +
+  theme(aspect.ratio = 1) +
+  labs(title = "Model m3_train", 
+       x = "Fitted sbp_2 values", y = "Residuals")
+
+p2 <- ggplot(m4_train_aug, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "red",
+              formula = y ~ x, se = FALSE) + 
+  geom_smooth(method = "loess", col = "blue",
+              formula = y ~ x, se = FALSE) +
+  theme(aspect.ratio = 1) +
+  labs(title = "Model m4_train", 
+       x = "Fitted sbp_2 values", y = "Residuals")
+
+p1 + p2
+```
+
+## `m3` and `m4`: Same predictions?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+t1 <- bind_cols(m3_train_aug$record, m3_train_aug$ins_1, m3_train_aug$.fitted, 
+                m4_train_aug$.fitted) 
+
+names(t1) <- c("record", "ins_1", "m3_fit", "m4_fit")
+
+p1 <- ggplot(data = t1, aes(x = m3_fit, y = m4_fit)) +
+  geom_abline(aes(col = "black"), intercept = 0, slope = 1) + 
+  geom_point(size = 2) + 
+  theme(aspect.ratio = 1) + 
+  labs(title = "Figure 1. Predicted sbp_2 from m3, m4")
+
+p2 <- ggplot(data = t1, aes(x = m3_fit, y = m4_fit, col = ins_1)) +
+  geom_abline(aes(col = "black"), intercept = 0, slope = 1) + 
+  geom_point(size = 2) + 
+  theme(aspect.ratio = 1) + 
+  facet_wrap( ~ ins_1) + 
+  guides(col = "none") +
+  labs(title = "Figure 2. Predicted sbp_2 by ins_1")
+
+p1 + p2
+```
+
+## Normality of Residuals?
+
+```{r}
+#| echo: true
+#| output-location: slide
+
+p1 <- ggplot(m3_train, aes(sample = .resid)) +
+  geom_qq() + geom_qq_line(col = "red") + theme(aspect.ratio = 1) +
+  labs(title = "Residuals from `m3_train`")
+
+p2 <- ggplot(m4_train, aes(sample = .resid)) +
+  geom_qq() + geom_qq_line(col = "red") + theme(aspect.ratio = 1) +
+  labs(title = "Residuals from `m4_train`")
+
+p1 + p2
+```
+
+
+## Training Set Performance
+
+```{r}
+#| echo: true
+
+bind_rows(glance(m1_train), broom.mixed::glance(m2_train), glance(m3_train), 
+          glance(m4_train)) |>
+  mutate(model = c("m1", "m2", "m3", "m4")) |> 
+  select(model, r2 = r.squared, sigma, AIC) |> 
+  kbl(digits = c(0, 3, 2, 1)) |> kable_styling(font_size = 28)
+```
+
+- `glance()` produces different summaries for a Bayesian `stan_glm()` model like `m2`.
+
+## Test Sample Results for Model `m3`
+
+```{r}
+#| echo: true
+
+m3_test_aug <- augment(m3_train, newdata = bp_test)
+
+## Summarize absolute prediction errors
+mosaic::favstats(~ abs(.resid), data = m3_test_aug) |> 
+  kbl(digits = 2) |> kable_styling(font_size = 28)
+
+## Summarize squared prediction errors
+mosaic::favstats(~ .resid^2, data = m3_test_aug) |> 
+  kbl(digits = 2) |> kable_styling(font_size = 28)
+```
+
+- MAPE = 11.15, max APE = 59.24 
+- RMSPE = $\sqrt{218.71}$ = 14.79
+
+## Test Sample Results for Model `m4`
+
+```{r}
+#| echo: true
+
+m4_test_aug <- augment(m4_train, newdata = bp_test)
+
+## Obtain mean, maximum absolute error and root mean squared error
+m4_test_aug |> select(.resid) |> 
+  summarize(MAPE = mean(abs(.resid)), maxAPE = max(abs(.resid)),
+            RMSPE = sqrt(mean(.resid^2))) |>
+  kbl(digits = 2) |> kable_styling(font_size = 32)
+```
+
+## Test Sample Correlation(fitted, actual)
+
+Pearson correlation between fitted predictions and actual `sbp_2` within the test sample. 
+
+- We could also square this to get an $R^2$ result.
+
+```{r}
+#| echo: true
+round_half_up(cor(m1_test_aug$.fitted, m1_test_aug$sbp_2),4)
+round_half_up(cor(m2_test_aug$.fitted, m2_test_aug$sbp_2),4)
+round_half_up(cor(m3_test_aug$.fitted, m3_test_aug$sbp_2),4)
+round_half_up(cor(m4_test_aug$.fitted, m4_test_aug$sbp_2),4)
+```
+
+
+## Comparing performance on the test data
+
+- Which model performs best in our test sample?
+
+Summary | MAPE | Max APE | RMSPE | Cor(Fit,Obs)
+----------: | --------: | -------: | -------: | ----:
+`m1`: `lm sbp_1` | `r round_half_up(mean(abs(m1_test_aug$.resid)),2)` | `r round_half_up(max(abs(m1_test_aug$.resid)),2)` | `r round_half_up(sqrt(mean(m1_test_aug$.resid^2)),2)` | `r round_half_up(cor(m1_test_aug$.fitted, m1_test_aug$sbp_2),4)`
+`m2`: `stan_glm` | `r round_half_up(mean(abs(m2_test_aug$.resid)),2)` | `r round_half_up(max(abs(m2_test_aug$.resid)),2)` | `r round_half_up(sqrt(mean(m2_test_aug$.resid^2)),2)` | `r round_half_up(cor(m2_test_aug$.fitted, m2_test_aug$sbp_2),4)`
+`m3`: `sbp_1+ins` | `r round_half_up(mean(abs(m3_test_aug$.resid)),2)` | `r round_half_up(max(abs(m3_test_aug$.resid)),2)` | `r round_half_up(sqrt(mean(m3_test_aug$.resid^2)),2)` | `r round_half_up(cor(m3_test_aug$.fitted, m3_test_aug$sbp_2),4)`
+`m4`: `sbp_1*ins` | `r round_half_up(mean(abs(m4_test_aug$.resid)),2)` | `r round_half_up(max(abs(m4_test_aug$.resid)),2)` | `r round_half_up(sqrt(mean(m4_test_aug$.resid^2)),2)` | `r round_half_up(cor(m4_test_aug$.fitted, m4_test_aug$sbp_2),4)`
+
+## Session Information
+
+```{r}
+#| echo: true
+sessionInfo()
+```
+
