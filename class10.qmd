@@ -95,6 +95,7 @@ miss_case_table(bp_full)
 ## Are the 8 with missing `res_1` also missing `ninc_1`?
 
 ```{r}
+#| echo: true
 ggplot(data = bp_full, aes(x = res_1, y = ninc_1)) +
   geom_miss_point()
 ```
