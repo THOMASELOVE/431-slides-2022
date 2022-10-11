@@ -241,7 +241,7 @@ $H_0: \mu = 0$ vs. $H_A: \mu \neq 0$.
 
 - t-based approach (either via indicator variable regression or direct t test)
 - bootstrap approach via `infer` package
-- bootstap confidence interval via `smean.cl.boot()`
+- bootstrap confidence interval via `smean.cl.boot()`
 - Wilcoxon signed rank
 
 # T-based Approach
@@ -511,7 +511,7 @@ The Wilcoxon signed rank approach builds interval estimates for the population *
 
 ```{r}
 #| echo: true
-wilcox.test(sal$diff, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(sal$diff, mu = 0, conf.int = TRUE, conf.level = 0.95)
 ```
 
 ## Interpreting the Wilcoxon Signed Rank CI
@@ -665,7 +665,7 @@ smean.cl.boot(sal$s_n1, conf.int = 0.95, B = 2000)
 
 ```{r}
 #| echo: true
-wilcox.test(sal$s_n1, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(sal$s_n1, mu = 35, conf.int = TRUE, conf.level = 0.95)
 ```
 
 ## Question B Results {.smaller}
@@ -675,7 +675,7 @@ Procedure | *p* | Estimate | 95% CI
 t | 0.039 | $\hat{\mu} = \bar{x}$ = 32.63 | (30.38, 34.88)
 Bootstrap via `infer` | 0.029 | $\hat{\mu} = \bar{x}$ = 32.63 | (30.5, 34.8)
 Bootstrap via `Hmisc` | < 0.05 | $\hat{\mu} = \bar{x}$ = 32.63 | (30.35, 34.84)
-Wilcoxon | < 0.001| ps.-med. = 32.71 | (30.17, 35.00)
+Wilcoxon | 0.053| ps.-med. = 32.71 | (30.17, 35.00)
 
 What can we conclude?
 
@@ -1096,7 +1096,7 @@ The Wilcoxon signed rank approach builds interval estimates for the population *
 
 ```{r}
 #| echo: true
-wilcox.test(sal$np_log, conf.int = TRUE, conf.level = 0.95)
+wilcox.test(sal$np_log, mu = 4.5, conf.int = TRUE, conf.level = 0.95)
 ```
 
 ## Interpreting the Wilcoxon Signed Rank CI
