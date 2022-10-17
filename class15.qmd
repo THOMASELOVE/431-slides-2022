@@ -14,23 +14,140 @@ format:
 
 ## Today's Agenda
 
-
+- Analysis of Variance
+- A Few Thoughts on Project A
 
 ::: aside
 Version `r Sys.time()`
 :::
 
-## Today's Packages
+# Analysis of Variance
 
-```{r}
-#| echo: true
-#| message: false
 
-library(janitor); library(naniar); library(patchwork)
-library(tidyverse)
+# On Project A
 
-theme_set(theme_bw())
-```
+## Deliverables on 2022-10-31 at 9 PM
+
+-   To Canvas: R Markdown and HTML report 
+-   To Canvas: Video (has outsized importance)
+-   Google Form (self-evaluation) submitted after the Canvas stuff is in
+
+### Working with a Partner?
+
+-   The submitting investigator submits Rmd, HTML and video to Canvas, and then submits the Google Form.
+-   The partner submits the one-sentence text document to Canvas (yes, again), and then submits the Google Form.
+
+## On the R Markdown and HTML Report
+
+Please review the checklist for the final report, listing things the TAs will be looking for in evaluating your project. Details matter.
+
+- The most important part of your analyses are the research questions, and your paragraphs about conclusions and limitations. This is the only part Dr. Love will read before he reviews your video, although he'll come back and read other things after grading the videos.
+  - We are NOT looking for separate training and testing samples. We want you to use your whole sample for all elements of this Project.
+
+## Dealing with Missing Data
+
+You can absolutely use complete cases in each of the three analyses, but these should have explicitly specified and different sample sizes if you have missing data in something other than your outcome.
+
+- Be certain to specify what you are assuming (MCAR, MAR or MNAR) about the missing data mechanism in developing your models.
+
+If you decide instead to use single imputation (with the `simputation` package), great.
+
+## If you impute... (1/2)
+
+This would mean that you are making a different assumption about the missing data mechanism than if you were using complete cases, and this should be explicitly specified.
+
+-   It's fine to use `rlm` or `pmm` to impute quantitative predictors, and to use `pmm` or `cart` for categorical ones.
+-   Use (at least) all other variables included in your planned model to help with the imputation, and you are also welcome to use other variables from your tidy data set, if you like. Be sure to state explicitly what you are doing.
+
+## If you impute... (2/2)
+
+-   Be sure to set a seed just before you do any imputation.
+-   For Project A, you can impute predictors, but not the outcome. Use complete cases for your outcome, regardless of any other decisions you make.
+
+## Your Job in the Rmd / HTML report
+
+Your job is to provide reasonable research questions (one question per analysis) and reasoned conclusions and clear, compelling logical motivations for those conclusions.
+
+-   All of the material from your proposal should be included in your final report. Some needs to be augmented, and, of course, may have changed in light of what you've done since your proposal was improved.
+-   Don't fight our example. Use it to make sure you've covered everything we need to see, and so that you make it as easy for us to review as possible.
+
+## The Analyses
+
+Create a section called Analysis 1, another called Analysis 2, and another called Analysis 3, **using the outline (including subsections) we've provided** for all of your headings.
+
+1.  Analysis 1 - predict your outcome using one of your quantitative predictors
+2.  Analysis 2 - predict your outcome using one of your categorical predictors
+3.  Analysis 3 - predict your outcome using one of your quantitative predictors (can be same as Analysis 1, or different) as well as `state`.
+
+## Using Variables?
+
+Many of you will only use four variables: your outcome, one quantitative predictor, one categorical one, and the `state`, in these analyses. Some will use five.
+
+Don't use language to suggest causality if your data and model cannot justify that.
+
+## Analysis 2 with a binary predictor (1/2)
+
+If you're using a binary predictor here, then this regression model boils down to a pooled t test. You should complete that regression model (with whatever transformation you like) and obtain an appropriate regression-based analysis.
+
+-   If you are unsatisfied with the adherence of the situation to regression assumptions, and want to ALSO develop an alternative confidence interval based on a Welch's t procedure, or a bootstrap comparison, that would be a good idea.
+
+## Analysis 2 with a binary predictor (2/2)
+
+-   Be sure to justify your final choice of approach (pooled t or other) with results from the output, and a description of what you're doing. Draw clear conclusions.
+-   Be certain that you address the issue of what population is being described by the confidence interval you develop in this setting.
+
+## Analysis 2 with a multi-categorical predictor
+
+If you're using a multi-categorical predictor here, then this regression model boils down to an analysis of variance (ANOVA).
+
+-   That's what we just did. Also, see Chapter 24 in the Course Notes.
+-   A set of formal pairwise comparisons should be a part of your analysis should your multi-categorical predictor demonstrate meaningful predictive value for your outcome.
+
+## Analysis 3 (1/2)
+
+Does `state` have a large impact on the model between your outcome and your quantitative predictor, and what does this imply about that outcome-quant predictor relationship?
+
+-   I suppose you could fit a model using `state` only to affect the intercept of the relationship between your outcome and your quantitative predictor, but ...
+
+## Analysis 3 (2/2)
+
+-   We'd far prefer that you fit a model where the `state` also can affect the slope of that relationship.
+    -   This implies that you should be fitting a model with an interaction term between `state` and your quantitative predictor, and that model requires careful interpretation.
+    -   A part of that interpretation should be a clear and appropriate visualization explaining what the impact of the `state` is on the regression line describing the outcome based on the quantitative predictor.
+
+## On the Video, I
+
+The video has more weight on your project grade than you might think, despite the fact that it is short.
+
+-   Do what we ask you to do in the video. (See the Final Report instructions.)
+-   Dr. Love will review all videos in detail **before** he looks at (most of) your report.
+
+## On the Video, II
+
+All videos should include a clear statement of the research questions for both analyses you present, and justify the responses to those questions with results from the analyses.
+
+-   The video must stand on its own, in the sense that it must be completely understandable to someone who has not read your report, but who is generally familiar with County Health Rankings and its measurements.
+
+## On the Video, III
+
+You need to tell us everything we need to know to evaluate your claims, and no more.
+
+-   Don't use causal or sloppy language in your video unless you can back that up.
+-   Make sure we can clearly see everything you want us to see in the video.
+
+## On the Video, IV
+
+-   Building the video is going to take more than the time to record it. Leave that time in your planning. It's a very bad idea to try to toss this together in the last 30 minutes.
+-   Make smart choices about what to present in the video. You cannot possibly include everything you put in your main report. What are the conclusion-driving things to show us?
+
+## The Self-Evaluation
+
+The Google Form is available at <https://bit.ly/431-projectA-self-evaluation-2022>. 
+
+Fill it out AFTER you have submitted the other materials to Canvas. This way, you'll have completed that work before you submit the self-evaluation, which is what we want.
+
+-   Again, if you're working with a partner for the rest of the project, you still do this part completely on your own.
+- Same deadline as everything else: October 31 at 9 PM.
 
 ## Session Information
 
@@ -38,4 +155,3 @@ theme_set(theme_bw())
 #| echo: true
 sessionInfo()
 ```
-
