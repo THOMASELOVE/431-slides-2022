@@ -14,6 +14,10 @@ format:
 
 ## Today's Agenda
 
+- Power and Sample Size: An Introduction
+  - When Comparing Two Means
+  - When Comparing Two Proportions
+
 ::: aside
 Version `r Sys.time()`
 :::
@@ -24,10 +28,206 @@ Version `r Sys.time()`
 #| echo: true
 #| message: false
 
+library(pwr)
 library(tidyverse)
 
 theme_set(theme_bw())
 ```
+
+## How Big A Sample Size Do I need?
+
+1.  What is the budget?
+2.  What are you trying to compare?
+3.  What is the study design?
+4.  How big an effect size do you expect (hope) to see?
+5.  What was that budget again?
+6.  OK, tell me the maximum allowable rates of Type I and Type II error that you want to control for. Or, if you like, tell me the confidence level and power you want to have.
+7.  What sort of statistical inference do you want to plan for?
+
+## Errors in Hypothesis Testing
+
+In testing hypotheses, there are two potential decisions and each one brings with it the possibility that a mistake has been made.
+
+-- | $H_A$ is true | $H_0$ is true
+---: | :---: | :---:
+Test rejects $H_0$ | Correct | Type I error (False positive)
+Test retains $H_0$ | Type II error (False negative) | Correct
+
+## Errors in Hypothesis Testing
+
+- A Type I error can only be made if $H_0$ is actually true.
+- A Type II error can only be made if $H_A$ is actually true.
+
+-- | $H_A$ is true | $H_0$ is true
+---: | :---: | :---:
+Test rejects $H_0$ | Correct | Type I error (False positive)
+Test retains $H_0$ | Type II error (False negative) | Correct
+
+## Specifying Error Probabilities (Type I)
+
+If we say we are using 90% confidence, this means:
+
+- we have a 10% significance level
+- $\alpha$, the probability of Type I error, is set to 0.10
+- In general, confidence level = 100(1-$\alpha$).
+- The probability of correctly retaining $H_0$ is designed to be 0.90.
+
+## Specifying Error Probabilities (Type II)
+
+- A Type II error is made if the alternative hypothesis is true, but you fail to choose it. 
+  - The probability depends on exactly which part of the alternative hypothesis is true, so that computing the probability of making a Type II error is not feasible.
+- The **power** of a test is the probability of making the correct decision when the alternative hypothesis is true. 
+- $\beta$ is defined as the probability of concluding that there was no difference, when in fact there was one (a Type II error).
+- A more powerful test has a lower Type II error rate, $\beta$.
+
+## Trading off significance ($\alpha$) and power ($\beta$).
+
+In many sample size decisions, 
+
+- we find that people set $\alpha$, the tolerable rate of Type I error, to be 0.05.
+- they then often try to set the sample size and other parameters so that the power (1 - $\beta$) is at least 0.80.
+
+## Relative Costs of Errors
+
+We'll advocate for thinking hard about the relative costs of Type I and Type II errors.
+
+- The underlying framework that assumes a power of 80% with a significance level of 5% is sufficient for most studies is pretty silly.
+
+## Power and Sample Size Calculations
+
+A power calculation is likely the most common element of an scientific grant proposal on which a statistician is consulted.
+
+- The tests that have power calculations worked out in intensive detail using R are mostly those with more substantial assumptions. 
+  - t tests that assume population normality, common population variance and balanced designs in the independent samples setting
+  - paired t tests that assume population normality 
+
+## Power and Sample Size Calculations
+
+- These power calculations are also usually based on tests rather than confidence intervals. Simulation is your friend here.
+- This process of doing power and related calculations is far more of an art than a science.
+
+# Power and Sample Size: Comparing Means
+
+## Paired vs. Independent Samples {.smaller}
+
+If you can afford to obtain n = 400 observations to compare means under exposure A to means under exposure B, and you could either:
+
+1. select a random sample from the population of interest containing 400 people and then randomly assign 200 people to receive exposure A and the remaining 200 people to receive exposure B (thus doing an independent samples study), or
+
+2. select a random sample from the population of interest containing 200 people and then randomly assign 100 of them to get exposure A first, and then, a little later, when the effects have worn off, to then receive exposure B, while the other 100 people are assigned to receive B first, then A (thus doing a paired samples study)
+
+Assuming the effect size is unchanged, which seems as though it would be the more powerful study design?
+
+## Power of an Independent Samples t test
+
+```{r}
+#| echo: true
+power.t.test(n = 200, delta = 0.25, sd = 1, 
+             sig.level = 0.10)
+```
+
+## Power of an Paired Samples t test
+
+```{r}
+#| echo: true
+power.t.test(n = 200, delta = 0.25, sd = 1, 
+             sig.level = 0.10, type = "paired")
+```
+
+## What sample size do we need?
+
+How many pairs of observations would we need to maintain 80% power?
+
+```{r}
+#| echo: true
+power.t.test(delta = 0.25, sd = 1, sig.level = 0.10, 
+             power = 0.80, type = "paired")
+```
+
+>- Note that we'd need 101 pairs of measurements.
+
+## Changing assumptions?
+
+In our independent-samples test, we chose 
+
+- `n = 200` (per group)
+- `delta = 0.25` (the minimum clinically important difference in means that we want to detect)
+- `sd = 1` (assumed population standard deviation in each group)
+- `sig.level = 0.10` (since we want 90% confidence)
+
+## Which direction will power move in?
+
+Original Setup yielded power = 0.802
+
+>- If we change $n$ from 200 to 400, leaving everything else untouched, do you think the power will increase or decrease?
+
+>- If we change $n$ from 200 to 400, power = 0.970
+
+>- What if we change $n$ from 200 to 100?
+>- If we change $n$ from 200 to 100, power = 0.546
+
+## Changing other parameters
+
+Original power = 0.802. Which changes **increase** the power?
+
+New Setup | Resulting Power
+:------- | :-----------: 
+a. $\delta$ from 0.25 to 0.5 | Higher or Lower than 0.802?
+b. $\delta$ from 0.25 to 0.1 | ?
+c. `sd` from 1 to 2 | ?
+d. `sd` from 1 to 0.5 | ?
+e. $\alpha$ from 0.1 to 0.05 | ?
+f. $\alpha$ from 0.1 to 0.2 | ?
+
+
+## Changes a, d, f increase power
+
+Original Setup yielded power = 0.802
+
+Change | Resulting power
+:------- | :----------:
+a. $\delta$ from 0.25 to 0.5 | 0.9996
+b. $\delta$ from 0.25 to 0.1 | 0.259
+c. `sd` from 1 to 2 | 0.345
+d. `sd` from 1 to 0.5 | 0.9996
+e. $\alpha$ from 0.1 to 0.05 | 0.703
+f. $\alpha$ from 0.1 to 0.2 | 0.888
+
+## What if you have an unbalanced design?
+
+The most efficient design for an independent samples comparison will be balanced.
+
+- What if we used our original setup for $\delta$, `sd` and $\alpha$, (which with n = 200 in each group, yielded power = 0.802) but instead we placed 
+    - 150 subjects into one exposure group, and 
+    - planned to recruit some number X larger than 150 into the other.
+
+## Unbalanced Design?
+
+- How many people would we have to recruit into the second exposure group to yield the same power as our original 200 in each group result?
+
+## `pwr.t2n.test` from the `pwr` package
+
+- Note the use here of d = $\delta$/`sd`.
+
+```{r}
+#| echo: true
+pwr.t2n.test(n1 = 150, d = 0.25/1, 
+             sig.level = 0.10, power = 0.802)
+```
+
+So we can either have 200 and 200, or we can have 150 and 299 to maintain the same power.
+
+## Assessing Unbalanced Designs
+
+The power is always stronger for a balanced design than for an unbalanced design with the same overall sample size.
+
+See chapter 22 of the Course Notes for additional examples using the `pwr.t2n.test()` function within the `pwr` package.
+
+### One-Sided or Two-Sided
+
+Note that I used a two-sided test to establish my power calculation - in general, this is the most conservative and defensible approach for any such calculation, unless there is a strong and specific reason to use a one-sided approach in building a power calculation, don't.
+
+# Power and Sample Size: Comparing Proportions
 
 ## Designing a New TB Study
 
@@ -48,7 +248,7 @@ We specify 4 of the following 5 elements of the comparison, and R calculates the
 -   The significance level ($\alpha$)
 -   The power (1 - $\beta$)
 
-Requires you to work with unbalanced designs.
+Requires you to work with balanced designs.
 
 ## Using `power.prop.test`
 
@@ -74,7 +274,7 @@ So, we'd need at least 967 non-sharing subjects, and 967 more who share needles 
 
 ## Another Scenario
 
-Suppose we can get 400 sharing and 400 non-sharing subjects. How much power would we have to detect a difference in the proportion of positive skin test results between the two groups that was identical to the pilot data above or larger, using a *one-sided* test, with $\alpha$ = .10?
+Suppose we can get 400 sharing and 400 non-sharing subjects. With what power could we detect 0.18 in one group and 0.26 in the other, in a *one-sided* $\alpha$ = .10 test?
 
 ```{r}
 #| echo: true
@@ -94,7 +294,7 @@ As before, we specify four of the following five elements of the comparison, and
 -   `n2` = The sample size in group 2
 -   `sig.level` = The significance level ($\alpha$)
 -   `power` = The power (1 - $\beta$)
--   `h` = the effect size h, which can be calculated separately in R based on the two proportions being compared: $p_1$ and $p_2$.
+-   `h` = the effect size, which can be calculated separately in R based on the two proportions being compared: $p_1$ and $p_2$.
 
 ## Calculating the Effect Size `h`
 
@@ -123,7 +323,7 @@ pwr::pwr.2p2n.test(h = ES.h(p1 = .18, p2 = .25), n1 = 700, n2 = 400,
 
 ## Comparison to Balanced Design
 
-How does this compare to the results with a balanced design using 1100 drug users in total, i.e. with 550 patients in each group?
+How does this compare to the results with a balanced design using 1100 drug users in total, i.e. 550 per group?
 
 ```{r}
 #| echo: true
@@ -138,16 +338,17 @@ pwr::pwr.2p2n.test(h = ES.h(p1 = .18, p2 = .25), n1 = 550, n2 = 550,
 power.prop.test(p1 = .18, p2 = .25, sig.level = 0.05, n = 550)
 ```
 
-
-## Not the Same?
+### Not the Same?
 
 Each approach uses approximations, and slightly different ones, so it's not surprising that the answers are similar, but not identical.
 
-### What haven't I included here?
+## What haven't I included here?
 
 1.  Some people will drop out.
 2.  What am I going to do about missing data?
 3.  What if I want to do my comparison while adjusting for covariates?
+
+More examples (again not touching on these last three issues much) in Chapter 27 of the Course Notes.
 
 ## How Big A Sample Size Do I need?
 
@@ -157,8 +358,7 @@ Each approach uses approximations, and slightly different ones, so it's not surp
 4.  How big an effect size do you expect (hope) to see?
 5.  What was that budget again?
 6.  OK, tell me the maximum allowable rates of Type I and Type II error that you want to control for. Or, if you like, tell me the confidence level and power you want to have.
-7.  And what sort of statistical inference do you want to plan for?
-
+7.  What sort of statistical inference do you want to plan for?
 
 ## Session Information
 
