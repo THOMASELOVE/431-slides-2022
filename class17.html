@@ -1265,7 +1265,7 @@ display: none;
 </ul>
 
 <aside><div>
-<p>Version 2022-10-18 08:15:26</p>
+<p>Version 2022-10-19 10:52:16</p>
 </div></aside></section>
 <section id="todays-packages" class="slide level2">
 <h2>Today’s Packages</h2>
@@ -1804,17 +1804,84 @@ NOTE: n is number in *each* group</code></pre>
 <li>What if I want to do my comparison while adjusting for covariates?</li>
 </ol>
 <p>More examples (again not touching on these last three issues much) in Chapter 27 of the Course Notes.</p>
+</section></section>
+<section>
+<section id="on-power-sample-size-decisions-and-the-march-of-science" class="title-slide slide level1 center">
+<h1>On Power / Sample Size Decisions and the March of Science</h1>
+
 </section>
-<section id="how-big-a-sample-size-do-i-need-1" class="slide level2">
-<h2>How Big A Sample Size Do I need?</h2>
+<section id="power-calculations" class="slide level2 smaller">
+<h2>Power Calculations</h2>
+<p>The most common scenario was to identify the desired significance level <span class="math inline">\(\alpha\)</span> and desired power (1 - <span class="math inline">\(\beta\)</span>) and the details of the plan in terms of what comparison is to be made, and how will the data be collected to support that comparison.</p>
+<p>This will then permit the calculation of a minimum necessary sample size to achieve these desires.</p>
+<p><span class="math inline">\(\alpha = 0.05\)</span> and <span class="math inline">\(\beta = 0.2\)</span> are the most common selections.</p>
+<ul>
+<li>Neither 95% confidence nor 80% power is a magical choice.</li>
+<li>Anything below 80% power will be hard to justify in real work.</li>
+</ul>
+</section>
+<section id="a-useful-metaphor" class="slide level2">
+<h2>A useful metaphor?</h2>
+<p>Sometimes I like to think of science as a march towards a destination.</p>
+<p>Actually, I suppose it’s an infinitely long march towards an ever-receding destination, but let’s leave the philosophy out of it for a moment.</p>
+<p>Suppose, for example, that we’re trying to make a meaningful change in the world, perhaps to treat an infection.</p>
+<p>What we’re trying to do is related to where we are in the March of Science.</p>
+</section>
+<section id="early-vs.-late-in-the-march-of-science" class="slide level2 smaller">
+<h2>Early vs. Late in the March of Science</h2>
+<p>In <strong>early</strong> work, we’re focused more on discovery than making final decisions.</p>
+<ul>
+<li>We don’t have a lot of past experience, so we bring little relevant data to the table.</li>
+<li>We’re (often) most concerned about discovering new possibilities, and we don’t have a very clear sense of where to go next.</li>
+<li>We’re (often) less concerned about false starts than we are about missed opportunities.</li>
+</ul>
+<p>In <strong>late</strong> work, we’re focused more on making a decision about how to treat.</p>
+<ul>
+<li>We have a fair amount of relevant history to draw on, sometimes quite detailed.</li>
+<li>We’re more concerned about testing the limits of our current knowledge than we are about missing opportunities to consider a new pathway.</li>
+<li>We’re often concerned about doing harm if we implement the strategy that looks most promising.</li>
+</ul>
+</section>
+<section id="power-and-significance" class="slide level2 smaller">
+<h2>Power and “significance”?</h2>
+<p>If we treat our sample size and study design as fixed strategies, then there is a tradeoff between:</p>
+<ul>
+<li>reducing <span class="math inline">\(\alpha\)</span>, the rate of Type I error (increasing our confidence) and</li>
+<li>reducing <span class="math inline">\(\beta\)</span>, the rate of Type II error (increasing our power)</li>
+</ul>
+<p>Suppose we are testing a new treatment for some condition.</p>
+<ul>
+<li>A Type I error means we conclude this treatment is helpful, when it actually isn’t.</li>
+<li>A Type II error means we conclude this treatment is not helpful, when it actually is.</li>
+</ul>
+</section>
+<section id="early-work-power-and-sample-size" class="slide level2 smaller">
+<h2>Early Work: Power and Sample Size</h2>
+<p>In early work, we are searching for treatments of promise, and our initial study will inevitably not be the last word on the subject, but rather will be followed up by confirmatory studies. In such a setting, it is often the case that:</p>
+<ul>
+<li>We’re not so concerned about getting results that cause us to continue to explore a treatment that doesn’t actually do what we need it to do.</li>
+<li>We’re really concerned about ruling out a treatment that is promising before we should.</li>
+</ul>
+<p>This implies we should prioritize reducing Type II error rates (we want more power to detect small but real effects, even if this means we will occasionally identify something as promising when it isn’t.)</p>
+<p>This means setting lower confidence levels and higher power levels, potentially, than the standard 95% confidence and 80% power.</p>
+</section>
+<section id="late-work-power-and-sample-size" class="slide level2 smaller">
+<h2>Late Work: Power and Sample Size</h2>
+<p>In late work, we have already identified promising treatments, and we are trying to confirm those results. The current study may actually be the last word on the subject, and we want to be sure we do no harm.</p>
+<ul>
+<li>We’re very concerned about getting results that cause us to continue to explore a treatment that doesn’t actually do what we need it to do.</li>
+<li>We’re less concerned about ruling out a treatment that is promising but doesn’t actually work.</li>
+</ul>
+<p>This implies we should prioritize reducing Type I error rates (we want greater confidence, even at the expense of power, that the effect we claim based on past data holds up.)</p>
+<p>This kind of confirmatory work is usually well suited to studies set up with higher confidence (perhaps 95% or 99% or more) and lower power (80% is the minimum I would recommend) against reasonable alternatives.</p>
+</section>
+<section id="conclusions" class="slide level2 smaller">
+<h2>Conclusions</h2>
 <ol type="1">
-<li>What is the budget?</li>
-<li>What are you trying to compare?</li>
-<li>What is the study design?</li>
-<li>How big an effect size do you expect (hope) to see?</li>
-<li>What was that budget again?</li>
-<li>OK, tell me the maximum allowable rates of Type I and Type II error that you want to control for. Or, if you like, tell me the confidence level and power you want to have.</li>
-<li>What sort of statistical inference do you want to plan for?</li>
+<li><p>If you’re early in the March of Science (perhaps just one pilot study has been done) then I would emphasize Type II error (power) more than usual, perhaps pushing required power to 90%, at least for a reasonably substantial “minimum scientifically important difference” <span class="math inline">\(\delta\)</span>.</p></li>
+<li><p>If you’re late in the March of Science (perhaps confirming the results of multiple prior studies) then I would be happier with 80% power and higher levels of confidence.</p></li>
+<li><p>If you’re in the middle, trading off Type I and Type II error is worth some thought, but I’d never recommend being under 80% power for an effect that matters.</p></li>
+<li><p>If it’s feasible to run a study large enough to have strong performance on both <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\beta\)</span>, that’s obviously ideal. Typically that doesn’t happen in early work.</p></li>
 </ol>
 </section>
 <section id="session-information" class="slide level2">

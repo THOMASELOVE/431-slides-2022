@@ -350,15 +350,86 @@ Each approach uses approximations, and slightly different ones, so it's not surp
 
 More examples (again not touching on these last three issues much) in Chapter 27 of the Course Notes.
 
-## How Big A Sample Size Do I need?
+# On Power / Sample Size Decisions and the March of Science
 
-1.  What is the budget?
-2.  What are you trying to compare?
-3.  What is the study design?
-4.  How big an effect size do you expect (hope) to see?
-5.  What was that budget again?
-6.  OK, tell me the maximum allowable rates of Type I and Type II error that you want to control for. Or, if you like, tell me the confidence level and power you want to have.
-7.  What sort of statistical inference do you want to plan for?
+## Power Calculations {.smaller}
+
+The most common scenario was to identify the desired significance level $\alpha$ and desired power (1 - $\beta$) and the details of the plan in terms of what comparison is to be made, and how will the data be collected to support that comparison.  
+
+This will then permit the calculation of a minimum necessary sample size to achieve these desires.
+
+$\alpha = 0.05$ and $\beta = 0.2$ are the most common selections.
+
+- Neither 95% confidence nor 80% power is a magical choice.
+- Anything below 80% power will be hard to justify in real work.
+
+## A useful metaphor?
+
+Sometimes I like to think of science as a march towards a destination. 
+
+Actually, I suppose it's an infinitely long march towards an ever-receding destination, but let's leave the philosophy out of it for a moment. 
+
+Suppose, for example, that we're trying to make a meaningful change in the world, perhaps to treat an infection. 
+
+What we're trying to do is related to where we are in the March of Science.
+
+## Early vs. Late in the March of Science {.smaller}
+
+In **early** work, we're focused more on discovery than making final decisions.
+
+- We don't have a lot of past experience, so we bring little relevant data to the table. 
+- We're (often) most concerned about discovering new possibilities, and we don't have a very clear sense of where to go next.
+- We're (often) less concerned about false starts than we are about missed opportunities.
+
+In **late** work, we're focused more on making a decision about how to treat.
+
+- We have a fair amount of relevant history to draw on, sometimes quite detailed.
+- We're more concerned about testing the limits of our current knowledge than we are about missing opportunities to consider a new pathway.
+- We're often concerned about doing harm if we implement the strategy that looks most promising.
+  
+## Power and "significance"? {.smaller}
+
+If we treat our sample size and study design as fixed strategies, then there is a tradeoff between:
+
+- reducing $\alpha$, the rate of Type I error (increasing our confidence) and
+- reducing $\beta$, the rate of Type II error (increasing our power)
+
+Suppose we are testing a new treatment for some condition.
+
+- A Type I error means we conclude this treatment is helpful, when it actually isn't.
+- A Type II error means we conclude this treatment is not helpful, when it actually is.
+
+## Early Work: Power and Sample Size {.smaller}
+
+In early work, we are searching for treatments of promise, and our initial study will inevitably not be the last word on the subject, but rather will be followed up by confirmatory studies. In such a setting, it is often the case that:
+
+- We're not so concerned about getting results that cause us to continue to explore a treatment that doesn't actually do what we need it to do.
+- We're really concerned about ruling out a treatment that is promising before we should. 
+
+This implies we should prioritize reducing Type II error rates (we want more power to detect small but real effects, even if this means we will occasionally identify something as promising when it isn't.)
+
+This means setting lower confidence levels and higher power levels, potentially, than the standard 95% confidence and 80% power.
+
+## Late Work: Power and Sample Size {.smaller}
+
+In late work, we have already identified promising treatments, and we are trying to confirm those results. The current study may actually be the last word on the subject, and we want to be sure we do no harm.
+
+- We're very concerned about getting results that cause us to continue to explore a treatment that doesn't actually do what we need it to do.
+- We're less concerned about ruling out a treatment that is promising but doesn't actually work. 
+
+This implies we should prioritize reducing Type I error rates (we want greater confidence, even at the expense of power, that the effect we claim based on past data holds up.) 
+
+This kind of confirmatory work is usually well suited to studies set up with higher confidence (perhaps 95% or 99% or more) and lower power (80% is the minimum I would recommend) against reasonable alternatives. 
+
+## Conclusions {.smaller}
+
+1. If you're early in the March of Science (perhaps just one pilot study has been done) then I would emphasize Type II error (power) more than usual, perhaps pushing required power to 90%, at least for a reasonably substantial "minimum scientifically important difference" $\delta$.
+
+2. If you're late in the March of Science (perhaps confirming the results of multiple prior studies) then I would be happier with 80% power and higher levels of confidence.
+
+3. If you're in the middle, trading off Type I and Type II error is worth some thought, but I'd never recommend being under 80% power for an effect that matters.
+
+4. If it's feasible to run a study large enough to have strong performance on both $\alpha$ and $\beta$, that's obviously ideal. Typically that doesn't happen in early work.
 
 ## Session Information
 
