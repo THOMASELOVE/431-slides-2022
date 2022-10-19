@@ -1,0 +1,39 @@
+---
+title: "431 Class 22"
+author: "Thomas E. Love, Ph.D."
+date: "2022-11-29"
+format:
+  revealjs: 
+    theme: simple
+    self-contained: true
+    slide-number: true
+    preview-links: auto
+    logo: 431-class-foot2.png
+    footer: "431 Class 22 | 2022-11-29 | https://thomaselove.github.io/431-2022/"
+---
+
+## Today's Agenda
+
+
+::: aside
+Version `r Sys.time()`
+:::
+
+## Today's Packages
+
+```{r}
+#| echo: true
+#| message: false
+
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+
+## Session Information
+
+```{r}
+#| echo: true
+sessionInfo()
+```

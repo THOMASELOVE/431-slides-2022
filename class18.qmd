@@ -1,0 +1,573 @@
+---
+title: "431 Class 18"
+author: "Thomas E. Love, Ph.D."
+date: "2022-11-03"
+format:
+  revealjs: 
+    theme: simple
+    self-contained: true
+    slide-number: true
+    preview-links: auto
+    logo: 431-class-foot2.png
+    footer: "431 Class 18 | 2022-11-03 | https://thomaselove.github.io/431-2022/"
+---
+
+## Today's Agenda {.smaller}
+
+Multiple Regression using the `dm1` data (Part 1 of 3)
+
+- Using `df_stats` to get `favstats` for multiple variables at once
+- Using the `naniar` package to identify and summarizing missingness
+- Complete Cases and Simple imputation to deal with missingness
+- Partitioning our data into training/test samples
+- Outcome transformation: what to consider
+- Assessing the fit in the sample where we build the model
+    - Using `tidy` to describe model coefficients
+    - Using `glance` to study fit quality
+
+::: aside
+Version `r Sys.time()`
+:::
+
+## Today's Packages
+
+```{r}
+#| echo: true
+#| message: false
+
+options(dplyr.summarise.inform = FALSE)
+
+library(simputation) # for single impuation
+library(car) # for boxCox
+library(GGally) # for ggpairs
+library(glue) # for labeling with live R code
+library(equatiomatic) # help with equation extraction
+library(broom) # for tidying model output
+library(kableExtra) # formatting tables
+library(janitor); library(naniar); library(patchwork)
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+# Multiple Regression with the `dm1` data
+
+## The `dm1` data: Four Variables (+ Subject)
+
+Suppose we want to consider predicting the `a1c` values of 500 diabetes subjects now, based on these three predictors:
+
+- `a1c_old`: subject's Hemoglobin A1c (in %) two years ago
+- `age`: subject's age in years
+- `income`: median income of subject's home neighborhood (3 categories)
+
+## The `dm1` data
+
+```{r}
+#| echo: true
+dm1 <- readRDS("c18/data/dm1.Rds")
+
+dm1
+```
+
+## Summarizing the `dm1` tibble
+
+```{r}
+#| echo: true
+summary(dm1)
+```
+
+## What roles will these variables play?
+
+`a1c` is our outcome, which we'll predict using three models ...
+
+1. Model 1: Use `a1c_old` alone to predict `a1c`
+2. Model 2: Use `a1c_old` and `age` together to predict `a1c`
+3. Model 3: Use `a1c_old`, `age`, and `income` together to predict `a1c`
+
+## `favstats` on multiple quantities?
+
+```{r}
+#| echo: true
+dm1 |> 
+  mosaicCore::df_stats(~ a1c + a1c_old + age) |>
+  rename(na = missing) |> kbl(digits = 2) |> kable_classic_2(font_size = 28)
+```
+
+- `df_stats()` is part of the `mosaicCore` package. 
+- Either use `library(mosaic)` to make `df_stats()` available, or use `mosaicCore::df_stats()`.
+
+## What will we do about missing data?
+
+```{r}
+#| echo: true
+dm1 |> 
+  summarize(across(everything(), ~ sum(is.na(.)))) |>
+  kbl() |> kable_classic_2(full_width = F)
+```
+
+- How many observations are missing at least one of these variables?
+- How many subjects (cases) are missing multiple variables?
+
+## Missingness and `naniar` 
+
+`miss_case_table()` provides a summary table describing the number of subjects missing 0, 1, 2, ... of the variables in our tibble.
+
+```{r}
+#| echo: true
+miss_case_table(dm1)
+```
+
+So, there are 18 subjects missing one variable, and 3 missing two. Can we identify these cases?
+
+## `miss_case_summary` lists missingness for each subject
+
+```{r}
+#| echo: true
+miss_case_summary(dm1)
+```
+
+## Can we summarize missingness by variable?
+
+```{r}
+#| echo: true
+miss_var_summary(dm1)
+```
+
+There's a `miss_var_table()` function, too, if that's useful.
+
+## `naniar` also has helpers for plots
+
+```{r}
+#| echo: true
+#| warning: false
+gg_miss_var(dm1)
+```
+
+
+## Option 1: Complete Cases Only
+
+We might assume that all of our missing values are Missing Completely At Random (MCAR) and thus that we can safely drop all observations with missing data from our data set.
+
+```{r}
+#| echo: true
+dm1_cc <- dm1 |> drop_na()
+
+nrow(dm1)
+nrow(dm1_cc)
+```
+
+- In classes 18 and 19, we will drop these 21 subjects, and fit all three models with the 479 subjects who have complete data on all four variables.
+
+# Simple Imputation with the `simputation` package
+
+## Option 2: Simple Imputation
+
+Suppose I don't want to impute the outcome. I think people missing my outcome shouldn't be included in my models.
+
+- We'll drop the 4 observations missing `a1c`.
+
+I'd be OK with assuming the missing values of `income` or `a1c_old` are MAR (so that we could use variables in our data to predict them.)
+
+## Imputing Predictors
+
+- This would allow us to use imputation methods to "fill in" or "impute" missing predictor values so that we can still use all of the other 496 subjects in our models.
+- The `simputation` package provides a straightforward method to do this, while maintaining a tidy workflow.
+- There are dangers in assuming everything is MCAR, so this looks helpful (MAR is a lesser assumption) but it introduces the issue of "creating" data where it didn't exist.
+
+## Simple Imputation of Missing `a1c_old`
+
+We could use a robust linear model method to impute our quantitative `a1c_old` values on the basis of `age`, which is missing no observations in common with `a1c_old` (in fact, `age` is missing no observations.)
+
+```{r}
+#| echo: true
+tempA <- impute_rlm(dm1, a1c_old ~ age)
+
+tempA |> miss_var_summary()
+```
+
+## Simple Imputation of Missing `income`
+
+We could use a decision tree (CART) method to impute our missing categorical `income` values, also on the basis of `age`.
+
+```{r}
+#| echo: true
+tempB <- impute_cart(dm1, income ~ age)
+
+tempB |> miss_var_summary()
+```
+
+## Chaining our Simple Imputations
+
+- In 431, I encourage you to try `rlm` for imputing quantitative variables, and `cart` for categorical variables. - Were I imputing a binary categorical variable, I would present it as a factor to `impute_cart`.
+
+```{r}
+#| echo: true
+dm1_imp <- dm1 |>
+  filter(complete.cases(a1c, subject)) |>
+  impute_rlm(a1c_old ~ age) |>
+  impute_cart(income ~ age + a1c_old)
+```
+
+- I imputed `a1c_old` using `age` and then imputed `income` using both `age` and `a1c_old`.
+
+## Summary of imputed tibble
+
+`dm1_imp` has 496 observations (since we dropped the 4 subjects with missing `a1c`: our *outcome*) but no missing values.
+
+```{r}
+#| echo: true
+dm1_imp |> summary()
+```
+
+## Two approaches for dealing with missing data
+
+1. We could assume MCAR for all variables, and then work with the complete cases (n = 479) in `dm1_cc`.
+
+2. We could assume MAR for the predictors, and work with the simply imputed (n = 496) in `dm1_imp`
+
+Neither of these, as it turns out, will be 100% satisfactory, but for now, we'll compare the impact of these two approaches on the results of our models.
+
+# OK. We'll do the complete case analysis in Classes 18-19, and return to the imputed data in Class 20.
+
+## Which of our three models is "best"?
+
+Our goal is accurate prediction of `a1c` values. 
+
+1. Model 1: Use `a1c_old` alone to predict `a1c`
+2. Model 2: Use `a1c_old` and `age` together to predict `a1c`
+3. Model 3: Use `a1c_old`, `age`, and `income` together to predict `a1c`
+
+Does our answer change depending on whether we start our work with the complete cases (`dm1_cc`: n = 479) or our simply imputed data (`dm1_imp`: n = 496)?
+
+## How shall we be guided by our data?
+
+> It can scarcely be denied that the supreme goal of all theory is to make the irreducible basic elements as simple and as few as possible without having to surrender the adequate representation of a single datum of experience. (A. Einstein)
+
+- Often, this is reduced to "make everything as simple as possible but no simpler"
+
+## How shall we be guided by our data?
+
+> Entities should not be multiplied without necessity. (Occam's razor)
+
+- Often, this is reduced to "the simplest solution is most likely the right one"
+
+## George Box's aphorisms
+
+> On Parsimony: Since all models are wrong the scientist cannot obtain a "correct" one by excessive elaboration. On the contrary following William of Occam he should seek an economical description of natural phenomena. Just as the ability to devise simple but evocative models is the signature of the great scientist so overelaboration and overparameterization is often the mark of mediocrity.
+
+## George Box's aphorisms
+
+> On Worrying Selectively: Since all models are wrong the scientist must be alert to what is importantly wrong. It is inappropriate to be concerned about mice when there are tigers abroad.
+
+- and, the most familiar version...
+
+> ... all models are approximations. Essentially, all models are wrong, but some are useful. However, the approximate nature of the model must always be borne in mind.
+
+## 431 strategy: "most useful" model?
+
+We'll get through these three steps today.
+
+1. Split the data into a development (model training) sample of about 70-80% of the observations, and a holdout (model test) sample, containing the remaining observations.
+2. Develop candidate models using the development sample.
+3. Assess the quality of fit for candidate models within the development sample.
+
+## 431 strategy: "most useful" model?
+
+We'll walk through these three steps in Class 19.
+
+4. Check adherence to regression assumptions in the development sample.
+5. When you have candidates, assess them based on the accuracy of the predictions they make for the data held out (and thus not used in building the models.) 
+6. Select a "final" model for use based on the evidence in steps 3, 4 and especially 5.
+
+
+
+# Split the data into a model development (training) sample and a model test (holdout) sample.
+
+## Partitioning the 479 Complete Cases
+
+- We'll select a random sample (without replacement) of 70% of the data (60-80% is customary) for model training. 
+- We'll hold out the remaining 30% for model testing, using `anti_join()` to identify all `dm1_cc` subjects not in `dm1_cc_train`.
+
+## Partitioning the 479 Complete Cases
+
+```{r}
+#| echo: true
+set.seed(202211)
+
+dm1_cc_train <- dm1_cc |> 
+  slice_sample(prop = 0.7, replace = FALSE)
+
+dm1_cc_test <- 
+  anti_join(dm1_cc, dm1_cc_train, by = "subject")
+
+c(nrow(dm1_cc_train), nrow(dm1_cc_test), nrow(dm1_cc))
+```
+
+# Develop candidate models using the development sample.
+
+## A look at the outcome (`a1c`) distribution
+
+```{r}
+#| echo: true
+#| output-location: slide
+p1 <- ggplot(dm1_cc_train, aes(x = a1c)) +
+  geom_histogram(binwidth = 0.5, 
+                 fill = "slateblue", col = "white")
+
+p2 <- ggplot(dm1_cc_train, aes(sample = a1c)) + 
+  geom_qq(col = "slateblue") + geom_qq_line(col = "red")
+
+p3 <- ggplot(dm1_cc_train, aes(x = "", y = a1c)) +
+  geom_violin(fill = "slateblue", alpha = 0.3) + 
+  geom_boxplot(fill = "slateblue", width = 0.3,
+               outlier.color = "red") +
+  labs(x = "") + coord_flip()
+
+p1 + p2 - p3 +
+  plot_layout(ncol = 1, height = c(3, 2)) + 
+  plot_annotation(title = "Hemoglobin A1c values (%)",
+         subtitle = glue("Model Development Sample: ", nrow(dm1_cc_train), 
+                           " adults with diabetes"))
+```
+
+
+## Transform the Outcome?
+
+We want to try to identify a good transformation for the conditional distribution of the outcome, given the predictors, in an attempt to make the linear regression assumptions of linearity, Normality and constant variance more appropriate.
+
+### Ladder of Useful (interpretable) transformations 
+
+Transformation | $y^2$ | y | $\sqrt{y}$ | log(y) | $1/y$ | $1/y^2$
+-------------: | ---: | ---: | ---: | ---: | ---: | ---: 
+$\lambda$       | 2 | 1 | 0.5 | 0 | -1 | -2
+
+## Consider a log transformation?
+
+```{r}
+#| echo: true
+#| output-location: slide
+p1 <- ggplot(dm1_cc_train, aes(x = log(a1c))) +
+  geom_histogram(bins = 15, 
+                 fill = "slateblue", col = "white")
+
+p2 <- ggplot(dm1_cc_train, aes(sample = log(a1c))) + 
+  geom_qq(col = "slateblue") + geom_qq_line(col = "red")
+
+p3 <- ggplot(dm1_cc_train, aes(x = "", y = log(a1c))) +
+  geom_violin(fill = "slateblue", alpha = 0.3) + 
+  geom_boxplot(fill = "slateblue", width = 0.3,
+               outlier.color = "red") +
+  labs(x = "") + coord_flip()
+
+p1 + p2 - p3 +
+  plot_layout(ncol = 1, height = c(3, 2)) + 
+  plot_annotation(title = "Natural Logarithm of Hemoglobin A1c",
+         subtitle = glue("Model Development Sample: ", nrow(dm1_cc_train), 
+                           " adults with diabetes"))
+```
+
+## Box-Cox to help pick a transformation?
+
+```{r}
+#| echo: true
+mod_0 <- lm(a1c ~ a1c_old + age + income, 
+            data = dm1_cc_train)
+boxCox(mod_0)
+```
+
+## Box-Cox to help pick a transformation?
+
+```{r}
+#| echo: true
+summary(powerTransform(mod_0))
+```
+
+## Consider the inverse?
+
+```{r}
+#| echo: true
+#| output-location: slide
+p1 <- ggplot(dm1_cc_train, aes(x = (1/a1c))) +
+  geom_histogram(bins = 15, 
+                 fill = "slateblue", col = "white")
+
+p2 <- ggplot(dm1_cc_train, aes(sample = (1/a1c))) + 
+  geom_qq(col = "slateblue") + geom_qq_line(col = "red")
+
+p3 <- ggplot(dm1_cc_train, aes(x = "", y = (1/a1c))) +
+  geom_violin(fill = "slateblue", alpha = 0.3) + 
+  geom_boxplot(fill = "slateblue", width = 0.3,
+               outlier.color = "red") +
+  labs(x = "") + coord_flip()
+
+p1 + p2 - p3 +
+  plot_layout(ncol = 1, height = c(3, 2)) + 
+  plot_annotation(title = "Inverse of Hemoglobin A1c",
+         subtitle = glue("Model Development Sample: ", nrow(dm1_cc_train), 
+                           " adults with diabetes"))
+```
+
+## Scatterplot Matrix 
+
+```{r}
+#| echo: true
+#| output-location: slide
+temp <- dm1_cc_train |> 
+  mutate(inv_a1c = 1/a1c) |>
+  select(a1c_old, age, income, inv_a1c)
+ggpairs(temp, 
+    title = "Scatterplots: Model Development Sample",
+    lower = list(combo = wrap("facethist", bins = 10)))
+```
+
+
+## `ggpairs()` for scatterplot matrices
+
+Note that `ggpairs` comes from the `GGally` package.
+
+- If you have more than 4-5 predictors, it's usually necessary to split this up into two or more scatterplot matrices, each of which should include the outcome.
+- I'd always put the outcome last in my selection here. That way, the bottom row will show the most important scatterplots, with the outcome on the Y axis, and each predictor, in turn on the X.
+
+## Three Regression Models We'll Fit
+
+- Remember we're using the model development sample. 
+- Let's work with the (1/a1c) transformation.
+
+```{r}
+#| echo: true
+mod_1 <- lm((1/a1c) ~ a1c_old, data = dm1_cc_train)
+
+mod_2 <- lm((1/a1c) ~ a1c_old + age, data = dm1_cc_train)
+
+mod_3 <- lm((1/a1c) ~ a1c_old + age + income, 
+            data = dm1_cc_train)
+```
+
+
+# Assess the quality of fit for candidate models in the development sample.
+
+## Tidied coefficients (`mod_1`)
+
+```{r}
+#| echo: true
+tidy_m1 <- tidy(mod_1, conf.int = TRUE, conf.level = 0.95)
+
+tidy_m1 |>
+  select(term, estimate, std.error, p.value, 
+         conf.low, conf.high) |>
+  kbl(digits = 4) |> 
+  kable_classic_2(font_size = 28, full_width = F)
+```
+
+## The Regression Equation (`mod_1`)
+
+Use the `equatiomatic` package to help here. 
+
+```{r}
+#| echo: true
+extract_eq(mod_1, use_coefs = TRUE, coef_digits = 4,
+           ital_vars = TRUE)
+```
+
+Use **results = 'asis'** in the code chunk name if you have trouble with this in R Markdown.
+
+## Summary of Fit Quality (mod_1)
+
+```{r}
+#| echo: true
+glance(mod_1) |> 
+  mutate(name = "mod_1") |>
+  select(name, r.squared, adj.r.squared, 
+         sigma, AIC, BIC) |>
+  kbl(digits = c(0, 3, 3, 3, 0, 0)) |> 
+  kable_minimal(font_size = 28, full_width = F)
+```
+
+
+## Tidied coefficients (`mod_2`)
+
+```{r}
+#| echo: true
+tidy_m2 <- tidy(mod_2, conf.int = TRUE, conf.level = 0.95)
+
+tidy_m2 |>
+  select(term, estimate, std.error, p.value, 
+         conf.low, conf.high) |>
+  kbl(digits = 4) |> 
+  kable_classic_2(font_size = 28, full_width = F)
+```
+
+## The Regression Equation (`mod_2`)
+
+Again, we'll use the `equatiomatic` package.
+
+```{r}
+#| echo: true
+extract_eq(mod_2, use_coefs = TRUE, coef_digits = 4,
+           ital_vars = TRUE)
+```
+
+## Summary of Fit Quality (mod_2)
+
+```{r}
+#| echo: true
+glance(mod_2) |>
+  mutate(name = "mod_2") |>
+  select(name, r.squared, adj.r.squared, 
+         sigma, AIC, BIC) |>
+  kbl(digits = c(0, 3, 3, 3, 0, 0)) |> 
+  kable_minimal(font_size = 28, full_width = F)
+```
+
+
+
+## Tidied coefficients (`mod_3`)
+
+```{r}
+#| echo: true
+tidy_m3 <- tidy(mod_3, conf.int = TRUE, conf.level = 0.95)
+
+tidy_m3 |>
+  select(term, estimate, se = std.error, 
+         low = conf.low, high = conf.high, p = p.value) |>
+  kbl(digits = 4) |> 
+  kable_classic_2(font_size = 28, full_width = F)
+```
+
+## The Regression Equation (`mod_3`)
+
+```{r}
+#| echo: true
+extract_eq(mod_3, use_coefs = TRUE, coef_digits = 5,
+           ital_vars = TRUE, wrap = TRUE, terms_per_line = 1)
+```
+
+## Summary of Fit Quality (mod_3)
+
+```{r}
+#| echo: true
+glance(mod_3) |>
+  mutate(name = "mod_3") |>
+  select(name, r.squared, adj.r.squared, 
+         sigma, AIC, BIC) |>
+  kbl(digits = c(0, 3, 3, 3, 0, 0)) |> 
+  kable_minimal(font_size = 28, full_width = F)
+```
+
+## Clean Up
+
+```{r}
+#| echo: true
+
+rm(mod_0, mod_1, mod_2, mod_3,
+   p1, p2, p3, temp, tempA, tempB,
+   tidy_m1, tidy_m2, tidy_m3)
+```
+
+
+## Session Information
+
+```{r}
+#| echo: true
+sessionInfo()
+```
