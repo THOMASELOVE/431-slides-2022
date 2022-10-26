@@ -1,7 +1,7 @@
 ---
 title: "431 Class 15"
 author: "Thomas E. Love, Ph.D."
-date: "2022-10-20"
+date: "2022-10-27"
 format:
   revealjs: 
     theme: simple
@@ -9,7 +9,7 @@ format:
     slide-number: true
     preview-links: auto
     logo: 431-class-foot2.png
-    footer: "431 Class 15 | 2022-10-20 | https://thomaselove.github.io/431-2022/"
+    footer: "431 Class 15 | 2022-10-27 | https://thomaselove.github.io/431-2022/"
 ---
 
 ## Today's Agenda
