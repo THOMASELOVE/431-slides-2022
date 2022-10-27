@@ -31,6 +31,7 @@ Version `r Sys.time()`
 #| echo: true
 library(readxl) # to read in an .xlsx file
 library(ggrepel) # to help label residual plots
+library(ggdist) # new package not previously used
 library(broom)
 library(equatiomatic)
 library(kableExtra)
@@ -146,6 +147,25 @@ ggplot(ohio20, aes(x = behavior, y = outcomes,
        subtitle = "Ohio's 88 counties, 2020 County Health Rankings",
        caption = "Source: https://www.countyhealthrankings.org/app/ohio/2020/downloads")
 ```
+
+## Question 1 Raindrop Plots?
+
+```{r}
+#| echo: true
+#| output-location: slide
+ggplot(ohio20, aes(x = behavior, y = outcomes, 
+                   fill = behavior)) +
+  ggdist::stat_halfeye(adjust = 0.5, width = 0.3, .width = c(0.5, 1)) +
+  ggdist::stat_dots(side = "left", dotsize = 1, justification = 1.05, binwidth = 0.1) +
+  guides(fill = "none") + 
+  scale_fill_brewer(palette = "Spectral", direction = -1) +
+  labs(x = "Health Behavior Group", 
+       y = "Health Outcomes (higher = better health)",
+       title = "Health Outcomes across Behavior Groups",
+       subtitle = "Ohio's 88 counties, 2020 County Health Rankings",
+       caption = "Source: https://www.countyhealthrankings.org/app/ohio/2020/downloads")
+```
+
 
 ## Question 1 Numerical Summaries
 
@@ -569,7 +589,7 @@ a reasonable argument for generalizing from the samples to the population(s)?
 
 # On Project A
 
-## Deliverables on 2022-10-31 at 9 PM
+## Deliverables on 2022-11-02 at 10 PM
 
 -   To Canvas: R Markdown and HTML report 
 -   To Canvas: Video (has outsized importance)
