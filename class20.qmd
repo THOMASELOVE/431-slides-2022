@@ -31,6 +31,7 @@ options(dplyr.summarise.inform = FALSE)
 library(simputation) # for single impuation
 library(car) # for boxCox
 library(GGally) # for ggpairs
+library(glue) # for adding R results to labels
 library(ggrepel) # help with residual plots
 library(equatiomatic) # help with equation extraction
 library(broom) # for tidying model output
@@ -63,7 +64,7 @@ This time, we'll build an 80% development, 20% holdout partition of the `dm1_imp
 ```{r}
 #| echo: true
 
-set.seed(20212021)
+set.seed(2022431)
 
 dm1_imp_train <- dm1_imp |> 
   slice_sample(prop = 0.8, replace = FALSE)
@@ -78,6 +79,7 @@ dim(dm1_imp_train); dim(dm1_imp_test)
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(dm1_imp_train, aes(x = a1c)) +
   geom_histogram(binwidth = 0.5, 
@@ -95,15 +97,15 @@ p3 <- ggplot(dm1_imp_train, aes(x = "", y = a1c)) +
 p1 + p2 - p3 +
   plot_layout(ncol = 1, height = c(3, 2)) + 
   plot_annotation(title = "Hemoglobin A1c values (%)",
-         subtitle = paste0("Model Development Sample after imputation: ", 
-                           nrow(dm1_imp_train), 
-                           " adults with diabetes"))
+         subtitle = glue("Model Development Sample after imputation: ", 
+                           nrow(dm1_imp_train), " adults with diabetes"))
 ```
 
 ## Consider a log transformation?
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(dm1_imp_train, aes(x = log(a1c))) +
   geom_histogram(bins = 15, 
@@ -140,6 +142,7 @@ boxCox(imod_0)
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(dm1_imp_train, aes(x = (1/a1c))) +
   geom_histogram(bins = 15, 
@@ -166,6 +169,7 @@ p1 + p2 - p3 +
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 temp <- dm1_imp_train |> 
   mutate(inv_a1c = 1/a1c) |>
@@ -204,7 +208,7 @@ tidy_im1 <- tidy(imod_1, conf.int = TRUE, conf.level = 0.95)
 tidy_im1 |>
   select(term, estimate, std.error, p.value, 
          conf.low, conf.high) |>
-  knitr::kable(digits = 4)
+  kbl(digits = 4) |> kable_material(font_size = 28)
 ```
 
 ## The Regression Equation (`imod_1`)
@@ -218,7 +222,7 @@ extract_eq(imod_1, use_coefs = TRUE, coef_digits = 4,
            ital_vars = TRUE, wrap = TRUE, terms_per_line = 3)
 ```
 
-## Summary of Fit Quality (imod_1)
+## Summary of Fit Quality (`imod_1`)
 
 ```{r}
 #| echo: true
@@ -227,7 +231,7 @@ glance(imod_1) |>
   mutate(name = "imod_1") |>
   select(name, r.squared, adj.r.squared, 
          sigma, AIC, BIC) |>
-  knitr::kable(digits = c(0, 3, 3, 3, 0, 0))
+  kbl(digits = c(0,3,3,3,0,0)) |> kable_minimal(font_size = 28)
 ```
 
 ## Tidied coefficients (`imod_2`)
@@ -240,7 +244,7 @@ tidy_im2 <- tidy(imod_2, conf.int = TRUE, conf.level = 0.95)
 tidy_im2 |>
   select(term, estimate, std.error, p.value, 
          conf.low, conf.high) |>
-  knitr::kable(digits = 4)
+  kbl(digits = 4) |> kable_material(font_size = 28)
 ```
 
 ## The Regression Equation (`imod_2`)
@@ -254,7 +258,7 @@ extract_eq(imod_2, use_coefs = TRUE, coef_digits = 4,
            ital_vars = TRUE)
 ```
 
-## Summary of Fit Quality (imod_2)
+## Summary of Fit Quality (`imod_2`)
 
 ```{r}
 #| echo: true
@@ -263,7 +267,7 @@ glance(imod_2) |>
   mutate(name = "imod_2") |>
   select(name, r.squared, adj.r.squared, 
          sigma, AIC, BIC) |>
-  knitr::kable(digits = c(0, 3, 3, 3, 0, 0))
+  kbl(digits = c(0,3,3,3,0,0)) |> kable_minimal(font_size = 28)
 ```
 
 ## Tidied coefficients (`imod_3`)
@@ -276,7 +280,7 @@ tidy_im3 <- tidy(imod_3, conf.int = TRUE, conf.level = 0.95)
 tidy_im3 |>
   select(term, estimate, se = std.error, 
          low = conf.low, high = conf.high, p = p.value) |>
-  knitr::kable(digits = c(4,4,4,4,3))
+  kbl(digits = 4) |> kable_material(font_size = 28)
 ```
 
 ## The Regression Equation (`imod_3`)
@@ -290,7 +294,7 @@ extract_eq(imod_3, use_coefs = TRUE, coef_digits = 4,
            ital_vars = TRUE, wrap = TRUE, terms_per_line = 2)
 ```
 
-## Summary of Fit Quality (imod_3)
+## Summary of Fit Quality (`imod_3`)
 
 ```{r}
 #| echo: true
@@ -299,7 +303,7 @@ glance(imod_3) |>
   mutate(name = "imod_3") |>
   select(name, r.squared, adj.r.squared, 
          sigma, AIC, BIC) |>
-  knitr::kable(digits = c(0, 3, 3, 3, 0, 0))
+  kbl(digits = c(0,3,3,3,0,0)) |> kable_minimal(font_size = 28)
 ```
 
 ## I checked stepwise regression again
@@ -318,7 +322,7 @@ fwd.model <- step(min.model, direction = "forward",
 
 ## Stepwise Regression Results
 
-We wind up back at the model with all three predictors in this case (mod_3).
+We wind up back at the model with all three predictors in this case (`imod_3`).
 
 ```{r}
 #| echo: true
@@ -330,7 +334,7 @@ fwd.model$coefficients
 
 ## Which Model Looks Best In-Sample?
 
-For each of these summaries, which model looks best in the training sample?
+Considering each summary separately...
 
 ```{r}
 #| echo: true
@@ -340,8 +344,10 @@ bind_rows(glance(imod_1), glance(imod_2), glance(imod_3)) |>
          vars = c("a1c_old", "+ age", "+ income")) |>
   select(model, vars, r2 = r.squared, adj_r2 = adj.r.squared, 
          sigma, AIC, BIC) |>
-  kable(digits = c(0, 0, 3, 3, 5, 1, 0))
+  kbl(digits = c(0, 0, 3, 3, 5, 1, 0)) |> kable_classic(font_size = 28)
 ```
+
+## Conclusions from In-Sample Comparisons?
 
 - `imod_3` (as it must, here) has the best R-square.
 - `imod_2` wins on adjusted R-square and $\sigma$ and AIC
@@ -371,10 +377,13 @@ Four key assumptions we need to think about:
 3. Normality
 4. Independence
 
-## Main 4 Residual Plots for `imod_1` (via `ggplot2`)
+For each model, what can we say based on residual plots?
+
+## Residual Plots for `imod_1` (via `ggplot2`)
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(augi1, aes(x = .fitted, y = .resid)) +
   geom_point() + 
@@ -419,7 +428,7 @@ p4 <- ggplot(augi1, aes(x = .hat, y = .std.resid)) +
                   caption = "If applicable, Cook's d >= 0.5 shown in red in bottom right plot.")
 ```
 
-## Base R Residual Plots for Model `imod_1`
+## Base R Residual Plots: `imod_1`
 
 ```{r}
 #| echo: true
@@ -428,10 +437,11 @@ par(mfrow = c(2,2)); plot(imod_1); par(mfrow = c(1,1))
 ```
 
 
-## Main 4 Residual Plots for `imod_2` (via `ggplot2`)
+## Residual Plots for `imod_2` (via `ggplot2`)
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(augi2, aes(x = .fitted, y = .resid)) +
   geom_point() + 
@@ -476,7 +486,7 @@ p4 <- ggplot(augi2, aes(x = .hat, y = .std.resid)) +
                   caption = "If applicable, Cook's d >= 0.5 shown in red in bottom right plot.")
 ```
 
-## Base R Residual Plots for Model `imod_2`
+## Base R Residual Plots: `imod_2`
 
 ```{r}
 #| echo: true
@@ -484,10 +494,11 @@ p4 <- ggplot(augi2, aes(x = .hat, y = .std.resid)) +
 par(mfrow = c(2,2)); plot(imod_2); par(mfrow = c(1,1))
 ```
 
-## Main 4 Residual Plots for `imod_3` (via `ggplot2`)
+## Residual Plots for `imod_3` (via `ggplot2`)
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(augi3, aes(x = .fitted, y = .resid)) +
   geom_point() + 
@@ -532,7 +543,7 @@ p4 <- ggplot(augi3, aes(x = .hat, y = .std.resid)) +
                   caption = "If applicable, Cook's d >= 0.5 shown in red in bottom right plot.")
 ```
 
-## Base R Residual Plots for Model `imod_3`
+## Base R Residual Plots: `imod_3`
 
 ```{r}
 #| echo: true
@@ -580,10 +591,6 @@ test_im2 <- augment(imod_2, newdata = dm1_imp_test) |>
 test_im3 <- augment(imod_3, newdata = dm1_imp_test) |>
   mutate(name = "imod_3", fit_a1c = 1 / .fitted,
          res_a1c = a1c - fit_a1c) 
-```
-
-```{r}
-#| echo: true
 
 test_icomp <- bind_rows(test_im1, test_im2, test_im3) |>
   arrange(subject, name)
@@ -593,6 +600,7 @@ test_icomp <- bind_rows(test_im1, test_im2, test_im3) |>
 
 ```{r}
 #| echo: true
+#| output-location: slide
 
 p1 <- ggplot(test_icomp, aes(x = res_a1c, fill = name)) +
   geom_histogram(bins = 20, col = "white") + 
@@ -615,20 +623,16 @@ p1 + p2 + plot_layout(ncol = 2)
 
 ## Table Comparing Model Prediction Errors
 
-- Model `imod_2` has the best mean APE (MAPE) and RMSPE, while `imod_3` has the smallest maximum predictive error.
-
 ```{r}
 #| echo: true
 
-test_icomp |>
-  group_by(name) |>
-  summarize(n = n(),
-            MAPE = mean(abs(res_a1c)), 
-            RMSPE = sqrt(mean(res_a1c^2)),
+test_icomp |> group_by(name) |>
+  summarize(n = n(), MAPE = mean(abs(res_a1c)), RMSPE = sqrt(mean(res_a1c^2)),
             max_error = max(abs(res_a1c))) |>
-  kable(digits = c(0, 0, 3, 3, 2))
+  kbl(digits = c(0, 0, 3, 3, 2)) |> kable_minimal(font_size = 28)
 ```
 
+- Conclusions?
 
 ## Identify the largest errors (Results)
 
@@ -667,19 +671,21 @@ ggplot(test_icomp, aes(x = a1c, y = res_a1c,
 
 ## Key Summaries
 
-With complete cases, 
+With complete cases (from Classes 18-19)
 
 - in-sample: all three models look OK on assumptions in residual plots, model 2 looks like it fits a little better by Adjusted $R^2$ and AIC, model 1 looks slightly better by BIC.
 - out-of-sample: distributions of errors are similar. Model 1 has smallest MAPE, RMPSE and maximum error, while Model 2 has the smallest median error, but all three models are pretty similar.
 
-With imputation,
+## Key Summaries
+
+With imputation, (today)
 
 - in-sample: nothing disastrous in residual plots, model 3 has the best $R^2$, Model 2 wins on adjusted $R^2$, $\sigma$, and AIC, and Model 1 has the best BIC.
-- out-of-sample: Model 2 has the smallest MAPE, RMSE, but model 3 has the smallest maximum predictive error. 
+- out-of-sample: Model 1 has the smallest MAPE, RMSE and maximum predictive error. 
 
 So what can we conclude? Does this particular imputation strategy have a big impact?
 
-## Again, this is our 431 Strategy
+## Again, this is our 431 Strategy {.smaller}
 
 Which model is "most useful" in a prediction context?
 
