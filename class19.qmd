@@ -31,7 +31,7 @@ Version `r Sys.time()`
 
 options(dplyr.summarise.inform = FALSE)
 
-library(simputation) # for single impuation
+library(simputation) # for single imputation
 library(car) # for boxCox
 library(GGally) # for ggpairs
 library(glue) # for enhancing labels with code results
@@ -121,7 +121,7 @@ step(mod_3)
 
 ## An Important Point
 
-Stepwise regression lands on our `mod_2`, as it turns out.
+Stepwise regression lands on our `mod_1`, as it turns out.
 
 - There is a **huge** amount of evidence that variable selection causes severe problems in estimation and inference.
 - Stepwise regression is an especially bad choice.
