@@ -198,7 +198,7 @@ Can we detect differences in the population means of `outcomes` across the four 
 ```{r}
 #| echo: true
 model_one <- lm(outcomes ~ behavior, data = ohio20)
-tidy(model_one, conf.int = 0.90) |> 
+tidy(model_one, conf.int= TRUE, conf.level = 0.90) |> 
   select(term, estimate, std.error, conf.low, conf.high, p.value) |> 
   kbl(digits = 2) |> kable_classic_2(font_size = 28)
 ```
